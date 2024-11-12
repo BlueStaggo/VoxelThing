@@ -140,8 +140,7 @@ public class WorldRenderer(MainRenderer mainRenderer) : IDisposable
         Profiler.Push("render");
         foreach (ChunkRenderer chunkRenderer in sortedChunkRenderers)
         {
-            if (!chunkRenderer.NeedsUpdate
-                || !mainRenderer.Camera.Frustum.TestAabb(chunkRenderer.Aabb))
+            if (!chunkRenderer.NeedsUpdate || !chunkRenderer.IsInCamera(mainRenderer.Camera))
                 continue;
 
             chunkRenderer.Render(Profiler);
@@ -163,6 +162,9 @@ public class WorldRenderer(MainRenderer mainRenderer) : IDisposable
             foreach (ChunkRenderer chunkRenderer in sortedChunkRenderers)
             {
                 if (translucent ? chunkRenderer.EmptyTranslucent : chunkRenderer.EmptyOpaque)
+                    continue;
+
+                if (!chunkRenderer.IsInCamera(mainRenderer.Camera))
                     continue;
 
                 Vector3 offset = (Vector3)((Vector3d)chunkRenderer.Position * Chunk.Length - cameraPosition);
@@ -245,12 +247,13 @@ public class WorldRenderer(MainRenderer mainRenderer) : IDisposable
         mainRenderer.Shaders.Get<CloudShader>().Use();
         state.Enable(EnableCap.Blend);
         state.Disable(EnableCap.CullFace);
-        backgroundBindings.Draw();
+        cloudBindings.Draw();
     }
     
     public void Dispose()
     {
         backgroundBindings.Dispose();
+        cloudBindings.Dispose();
         foreach (ChunkRenderer chunkRenderer in chunkRenderers)
             chunkRenderer.Dispose();
         

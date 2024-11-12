@@ -32,24 +32,22 @@ public readonly struct Frustum
         //     && right.IntersectsAabb(center, extents)
         //     && left.IntersectsAabb(center, extents)
         //     && far.IntersectsAabb(center, extents)
-        //     && near.IntersectsAabb(center, extents);
+            // && near.IntersectsAabb(center, extents);
         return true;
     }
 }
 
-public readonly struct Plane(Vector3 pos, Vector3 normal)
+public readonly struct Plane(Vector3 position, Vector3 normal)
 {
     public readonly Vector3 Normal = normal.Normalized();
-    public readonly float Distance = Vector3.Dot(pos, normal);
+    public readonly float Distance = Vector3.Dot(normal, position);
 
     public float GetSignedDistance(Vector3 point) => Vector3.Dot(Normal, point) - Distance;
 
     public bool IntersectsAabb(Vector3 center, Vector3 extents)
     {
-        float radius =
-            extents.X * MathF.Abs(Normal.X)
-            + extents.Y * MathF.Abs(Normal.Y)
-            + extents.Z * MathF.Abs(Normal.Z);
-        return MathF.Abs(GetSignedDistance(center)) <= radius;
+        float radius = Math.Max(Math.Max(extents.X, extents.Y), extents.Z)
+            * (Math.Abs(Normal.X) + Math.Abs(Normal.Y) + Math.Abs(Normal.Z));
+        return -radius <= GetSignedDistance(center);
     }
 }

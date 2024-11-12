@@ -217,7 +217,11 @@ public class Game : GameWindow
             camera.Rotation = (yaw, pitch);
 
             if (World is not null)
+            {
+                Profiler.Push("player-raycast");
                 SelectionCast = World.DoRaycast(camera.Position, camera.Front, 5.0f);
+                Profiler.Pop();
+            }
 
             if (Settings.ThirdPerson)
             {

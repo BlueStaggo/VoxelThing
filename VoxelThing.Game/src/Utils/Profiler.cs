@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace VoxelThing.Game.Utils;
 
 public class Profiler(bool doMeasurements = true)
@@ -32,6 +34,7 @@ public class Profiler(bool doMeasurements = true)
         entryStack.Pop();
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void PopPush(string key)
     {
         Pop();

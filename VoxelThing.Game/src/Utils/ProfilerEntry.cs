@@ -5,10 +5,10 @@ namespace VoxelThing.Game.Utils;
 public class ProfilerEntry
 {
     public double MeanTime => TimeElapsed / Calls;
+    public double TimeElapsed { get; internal set; }
+    public ulong Calls { get; internal set; }
     
     internal readonly Stopwatch Stopwatch = new();
-    internal double TimeElapsed;
-    internal ulong Calls;
     
     public readonly Dictionary<string, ProfilerEntry> Entries = [];
 

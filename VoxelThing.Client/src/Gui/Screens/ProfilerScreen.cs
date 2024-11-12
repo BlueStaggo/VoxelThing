@@ -31,16 +31,22 @@ public class ProfilerScreen(Game game) : Screen(game)
         0xff55ff,
         0xffff55,
     ];
-    
+
     private static readonly ImmutableArray<Vector3> EntryColorsVector3
         = [..EntryColorsRgb.Select(rgb => new Vector3(
             ((rgb >> 16) & 255) / 255.0f,
             ((rgb >> 8) & 255) / 255.0f,
             (rgb & 255) / 255.0f
         ))];
+
+    private static readonly int SelfColorRgb = 0xaaaaaa;
+    private static readonly Vector3 SelfColorVector3 = Vector3.One;
+    private static readonly int RemainderColorRgb = 0x7f7f7f;
+    private static readonly Vector3 RemainderColorVector3 = Vector3.One * 2.0f / 3.0f;
     
     private readonly Stack<string> entryKeyStack = [];
     private string? nextEntry;
+    private ulong profilerTicks;
     
     public override void Draw()
     {
@@ -51,6 +57,8 @@ public class ProfilerScreen(Game game) : Screen(game)
 
     private void DrawGraph()
     {
+        profilerTicks++;
+
         ProfilerEntry parentEntry = Game.Profiler.Root.Entries["game"];
         foreach (string key in entryKeyStack.Reverse())
         {
@@ -64,29 +72,27 @@ public class ProfilerScreen(Game game) : Screen(game)
             parentEntry = childEntry;
         }
 
-        bool selfMeasured = false;
-
         MainRenderer renderer = Game.MainRenderer;
         ScreenDimensions dimensions = Game.MainRenderer.ScreenDimensions;
         bool clickMouse = Game.MouseButtonsJustPressed.Any(m => m is { IsPressed: true, Button: MouseButton.Button1 });
         
-        Dictionary<string, ProfilerEntry> entries = parentEntry.Entries;
+        Dictionary<string, ProfilerEntry> entries = parentEntry.Entries.ToDictionary();
+        
+        List<string> entryKeys = [..entries.Keys.Order()];
+
         if (entries.Count == 0)
-        {
-            entries = entries.ToDictionary();
-            entries["self"] = parentEntry;
-            selfMeasured = true;
-        }
+            entryKeys.Add(".self");
+        else
+            entryKeys.Add(".remainder");
         
-        ImmutableArray<string> entryKeys = [..entries.Keys.Order()];
-        double maxMeanTime = entries.Values.Sum(e => e.MeanTime);
-        
+        double maxTime = Math.Max(parentEntry.TimeElapsed / profilerTicks, entries.Values.Sum(e => e.TimeElapsed / profilerTicks));
+
         const float panelHeight = Padding * 2 + MaxBarHeight;
         const float legendStartX = Padding;
         const float barsStartX = Padding * 2 + LegendWidth;
         float panelStartY = dimensions.Height - panelHeight;
         float paddedPanelStartY = panelStartY + Padding;
-        float panelWidth = Padding * 3 + entryKeys.Length * (BarWidth + BarMargin) - BarMargin + LegendWidth;
+        float panelWidth = Padding * 3 + entryKeys.Count * (BarWidth + BarMargin) - BarMargin + LegendWidth;
         Font font = renderer.Fonts.Shadowed;
 
         using (GlState state = new())
@@ -107,20 +113,35 @@ public class ProfilerScreen(Game game) : Screen(game)
             panelStartY - font.LineHeight
         );
 
-        for (int i = 0; i < entryKeys.Length; i++)
+        for (int i = 0; i < entryKeys.Count; i++)
         {
             string key = entryKeys[i];
-            ProfilerEntry entry = entries[key];
-            int colorRgb = selfMeasured ? 0xaaaaaa : EntryColorsRgb[i % 12];
-            Vector3 colorVector3 = selfMeasured ? Vector3.One : EntryColorsVector3[i % 12];
+            double time = key switch
+            {
+                ".self" => parentEntry.TimeElapsed / profilerTicks,
+                ".remainder" => maxTime - entries.Values.Sum(e => e.TimeElapsed / profilerTicks),
+                _ => entries[key].TimeElapsed / profilerTicks
+            };
+            int colorRgb = key switch
+            {
+                ".self" => SelfColorRgb,
+                ".remainder" => RemainderColorRgb,
+                _ => EntryColorsRgb[i % 12]
+            };
+            Vector3 colorVector3 = key switch
+            {
+                ".self" => SelfColorVector3,
+                ".remainder" => RemainderColorVector3,
+                _ => EntryColorsVector3[i % 12]
+            };
             
             font.Print(
-                $"§c{colorRgb:x6}{key}: §cffffff{entries[key].MeanTime:F2}ms",
+                $"§c{colorRgb:x6}{key}: §cffffff{time:F2}ms",
                 legendStartX,
                 paddedPanelStartY + i * font.LineHeight
             );
 
-            if (!selfMeasured && clickMouse && nextEntry is null)
+            if (!key.StartsWith('.') && clickMouse && nextEntry is null)
             {
                 Aabb textAabb = Aabb.FromExtents(
                     legendStartX,
@@ -134,7 +155,7 @@ public class ProfilerScreen(Game game) : Screen(game)
                     nextEntry = key;
             }
 
-            float barHeight = MaxBarHeight * (float)(entry.MeanTime / maxMeanTime);
+            float barHeight = MaxBarHeight * (float)(time / maxTime);
             renderer.Draw2D.DrawQuad(new()
             {
                 Position = ((barsStartX + i * (BarWidth + BarMargin)), paddedPanelStartY),
@@ -185,7 +206,10 @@ public class ProfilerScreen(Game game) : Screen(game)
         {
             Game.Profiler.DoMeasurements = !Game.Profiler.DoMeasurements;
             if (!Game.Profiler.DoMeasurements)
+            {
                 Game.Profiler.Clear();
+                profilerTicks = 0;
+            }
         }
     }
 }

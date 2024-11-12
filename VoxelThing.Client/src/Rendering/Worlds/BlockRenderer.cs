@@ -37,18 +37,23 @@ public static class BlockRenderer
         int yy = args.Chunk.ToGlobalY(args.Y);
         int zz = args.Chunk.ToGlobalZ(args.Z);
 
-        profiler?.Push("render-faces");
 		FaceRenderingArguments fargs = new(args, block);
-        for (Direction direction = 0; (int)direction < 6; direction++)
+		for (Direction direction = 0; (int)direction < 6; direction++)
+		{
+			profiler?.Push("check-face");
 	        if (block.IsFaceDrawn(
 	            args.BlockAccess,
 	            xx + direction.GetX(),
 	            yy + direction.GetY(),
 	            zz + direction.GetZ(),
 	            direction
-	        ))
+            ))
+	        {
+		        profiler?.PopPush("render-face");
                 SideRenderers[(int)direction](fargs);
-        profiler?.Pop();
+	        }
+			profiler?.Pop();
+		}
 
         return true;
     }

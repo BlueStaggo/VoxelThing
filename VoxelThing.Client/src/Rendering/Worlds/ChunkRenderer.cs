@@ -126,9 +126,9 @@ public class ChunkRenderer : IDisposable
         translucentBindings.Draw();
     }
 
-    public void LoadNeighborChunks() => _ = new ChunkCache(world, X, Y, Z);
-
     public double GetFadeAmount(double currentTime) => double.Clamp(1.0 - (currentTime - firstAppearance), 0.0, 1.0);
+
+    public bool IsInCamera(Camera camera) => camera.Frustum.TestAabb(Aabb.Offset(-camera.Position));
 
     public void Dispose()
     {
