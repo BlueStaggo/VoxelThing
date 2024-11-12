@@ -46,6 +46,7 @@ public class WorldRenderer(MainRenderer mainRenderer) : IDisposable
         Profiler.Push("refresh-renderers");
         foreach (ChunkRenderer chunkRenderer in chunkRenderers)
             chunkRenderer.Dispose();
+        sortedChunkRenderers.Clear();
 
         if (World is null)
         {
@@ -256,7 +257,8 @@ public class WorldRenderer(MainRenderer mainRenderer) : IDisposable
         cloudBindings.Dispose();
         foreach (ChunkRenderer chunkRenderer in chunkRenderers)
             chunkRenderer.Dispose();
-        
+        sortedChunkRenderers.Clear();
+
         GC.SuppressFinalize(this);
     }
 }
