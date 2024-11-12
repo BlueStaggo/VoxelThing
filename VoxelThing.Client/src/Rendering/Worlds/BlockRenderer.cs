@@ -2,6 +2,7 @@ using OpenTK.Mathematics;
 using VoxelThing.Client.Rendering.Vertices;
 using VoxelThing.Game;
 using VoxelThing.Game.Blocks;
+using VoxelThing.Game.Utils;
 using VoxelThing.Game.Worlds;
 using VoxelThing.Game.Worlds.Chunks;
 
@@ -25,19 +26,29 @@ public static class BlockRenderer
 
     private static byte GetShade(int amount) => (byte)((1.0f - ShadeFactor * amount) * 255.0f);
 
-    public static bool Render(BlockRendererArguments args)
+    public static bool Render(BlockRendererArguments args, Profiler? profiler = null)
     {
+	    profiler?.Push("block-access");
         Block? block = args.Chunk.GetBlock(args.X, args.Y, args.Z);
+        profiler?.Pop();
         if (block is null) return false;
 
         int xx = args.Chunk.ToGlobalX(args.X);
         int yy = args.Chunk.ToGlobalY(args.Y);
         int zz = args.Chunk.ToGlobalZ(args.Z);
 
+        profiler?.Push("render-faces");
 		FaceRenderingArguments fargs = new(args, block);
         for (Direction direction = 0; (int)direction < 6; direction++)
-            if (block.IsFaceDrawn(args.BlockAccess, xx + direction.GetX(), yy + direction.GetY(), zz + direction.GetZ(), direction))
+	        if (block.IsFaceDrawn(
+	            args.BlockAccess,
+	            xx + direction.GetX(),
+	            yy + direction.GetY(),
+	            zz + direction.GetZ(),
+	            direction
+	        ))
                 SideRenderers[(int)direction](fargs);
+        profiler?.Pop();
 
         return true;
     }

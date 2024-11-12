@@ -20,7 +20,7 @@ public class SettingsManager
     public readonly Setting<int> RenderDistanceVertical;
     public readonly Setting<bool> ViewBobbing;
     public readonly Setting<bool> ThirdPerson;
-    public readonly Setting<bool> HideGui;
+    public readonly Setting<bool> HideHud;
     public readonly Setting<int> Skin;
     public readonly Setting<int> GuiScale;
     public readonly Setting<float> MouseSensitivity;
@@ -29,16 +29,16 @@ public class SettingsManager
     {
         Categories = categoriesMutable.AsReadOnly();
         
-        LimitFps = Add(new ChoiceSetting("Graphics", "Limit FPS", 2, "OFF", "ON", "Menu Only"));
+        LimitFps = Add(new ChoiceSetting("Graphics", "Limit Fps", 2, "OFF", "ON", "Menu Only"));
         RenderDistanceHorizontal = Add(new IntSliderSetting<int>("Graphics", "Horizontal Render Distance", 16, 1, 16));
         RenderDistanceVertical = Add(new IntSliderSetting<int>("Graphics", "Vertical Render Distance", 8, 1, 16));
         ViewBobbing = Add(new ToggleSetting("Graphics", "View Bobbing", true));
         ThirdPerson = Add(new ToggleSetting("Graphics", "Third Person", false));
-        HideGui = Add(new ToggleSetting("Graphics", "Hide GUI", false));
+        HideHud = Add(new ToggleSetting("Graphics", "Hide Hud", false));
         Skin = Add(new ChoiceSetting("Graphics", "Skin", 0, Game.Skins
             .Select(skin => (char.ToUpper(skin[0]) + skin[1..]).Replace('_', ' '))
             .ToArray()));
-        GuiScale = Add(new IntSliderSetting<int>("Graphics", "GUI Scale", 0, 0, 4) { ModifiableOnDrag = false });
+        GuiScale = Add(new IntSliderSetting<int>("Graphics", "Gui Scale", 0, 0, 4) { ModifiableOnDrag = false });
         MouseSensitivity = Add(new FloatSliderSetting<float>("Controls", "Mouse Sensitivity", 0.25f, 0.0f, 1.0f));
     }
 

@@ -20,6 +20,7 @@ Yeah, I'm releasing this early because I'm tired and I want to see if anyone els
 - R: Teleport to a random position
 - F1: Toggle GUI
 - F3: Debug menu
+- F4: Toggle profiler display
 - F5: Toggle third person
 - Escape: Open pause menu
 

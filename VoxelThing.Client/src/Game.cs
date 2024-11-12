@@ -15,6 +15,7 @@ using VoxelThing.Client.Settings;
 using VoxelThing.Client.Worlds;
 using VoxelThing.Game.Blocks;
 using VoxelThing.Game.Entities;
+using VoxelThing.Game.Utils;
 using VoxelThing.Game.Worlds;
 using VoxelThing.Game.Worlds.Storage;
 using ErrorCode = OpenTK.Graphics.OpenGL.ErrorCode;
@@ -37,6 +38,7 @@ public class Game : GameWindow
 
     public static readonly string[] Skins = ["joel", "staggo", "floof", "talon"];
 
+    public readonly Profiler Profiler = new(false);
     public int Fps { get; private set; }
     public double Delta { get; private set; }
     public double PartialTick { get; private set; }
@@ -84,6 +86,8 @@ public class Game : GameWindow
 
     private readonly Screen debugScreen;
     private readonly Screen ingameScreen;
+    private readonly Screen profilerScreen;
+    
     private Screen? currentScreen;
     private bool debugMenu = true;
 
@@ -115,6 +119,7 @@ public class Game : GameWindow
 
         debugScreen = new DebugScreen(this);
         ingameScreen = new IngameScreen(this);
+        profilerScreen = new ProfilerScreen(this);
 
         CurrentScreen = new MainMenuScreen(this);
         
@@ -135,10 +140,13 @@ public class Game : GameWindow
         }
     }
     
-#region Window Events
+#region Frame Events
     protected override void OnUpdateFrame(FrameEventArgs args)
     {
         base.OnUpdateFrame(args);
+        
+        Profiler.Push("game");
+        Profiler.Push("update");
         
         Delta = args.Time;
         tickTime += Delta;
@@ -175,6 +183,7 @@ public class Game : GameWindow
 
         while (tickTime > TickRate)
         {
+            Profiler.Push("tick");
             tickTime -= TickRate;
             currentScreen?.Tick();
 
@@ -183,6 +192,7 @@ public class Game : GameWindow
                 ingameScreen?.Tick();
                 Player?.Tick();
             }
+            Profiler.Pop();
         }
 
         if (!paused)
@@ -220,6 +230,8 @@ public class Game : GameWindow
                 camera.Position += (Vector3d)camera.Right * renderWalk * 0.05;
             }
         }
+
+        Profiler.Pop();
     }
     
     private void DoControls()
@@ -237,13 +249,13 @@ public class Game : GameWindow
         }
 
         if (KeysJustPressed.Any(e => e.Key == Keys.F1))
-            Settings.HideGui.Value = !Settings.HideGui;
+            Settings.HideHud.Value = !Settings.HideHud;
 
         if (KeysJustPressed.Any(e => e.Key == Keys.F3))
             debugMenu = !debugMenu;
 
         if (KeysJustPressed.Any(e => e.Key == Keys.F5))
-            Settings.ThirdPerson.Value = !Settings.ThirdPerson;
+            Settings.ThirdPerson.Value = !Settings.ThirdPerson.Value;
 
         if (KeysJustPressed.Any(e => e.Key == Keys.Escape))
             CurrentScreen = new PauseScreen(this);
@@ -256,15 +268,19 @@ public class Game : GameWindow
     {
         base.OnRenderFrame(args);
         
+        Profiler.Push("render");
+        
         MainRenderer.Draw();
         
         if (InWorld)
         {
-            if (!Settings.HideGui)
+            if (!Settings.HideHud)
             {
+                Profiler.Push("draw-hud");
                 if (debugMenu)
                     debugScreen.Draw();
                 ingameScreen.Draw();
+                Profiler.Pop();
             }
         }
         else
@@ -284,8 +300,13 @@ public class Game : GameWindow
                 )
             });
         }
-        
-        CurrentScreen?.Draw();
+
+        if (CurrentScreen is not null)
+        {
+            Profiler.Push("draw-gui");
+            CurrentScreen.Draw();
+            Profiler.Pop();
+        }
         
         fpsTimer += Delta;
         fpsCounter++;
@@ -296,6 +317,12 @@ public class Game : GameWindow
             fpsCounter = 0;
         }
         
+        Profiler.Pop();
+        Profiler.Pop();
+        
+        if (!Profiler.CompletelyBlockProfiler)
+            profilerScreen.Draw();
+
         SwapBuffers();
         
         keysJustPressed.Clear();

@@ -83,6 +83,8 @@ public readonly record struct Aabb(
         && other.MaxY > MinY && other.MinY < MaxY
         && other.MaxZ > MinZ && other.MinZ < MaxZ;
 
+    public bool Contains(Vector3d position) => Contains(position.X, position.Y, position.Z);
+
     public bool Contains(double x, double y, double z)
         => x > MinX && x < MaxX
         && y > MinY && y < MaxY
@@ -93,7 +95,7 @@ public readonly record struct Aabb(
         direction.Normalize();
         direction *= 0.01;
 
-        while (Contains(position.X, position.Y, position.Z))
+        while (Contains(position))
             position -= direction;
 
         Vector3d[] faces =

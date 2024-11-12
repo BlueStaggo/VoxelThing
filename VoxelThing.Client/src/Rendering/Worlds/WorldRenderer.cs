@@ -5,6 +5,7 @@ using VoxelThing.Client.Rendering.Utils;
 using VoxelThing.Client.Rendering.Vertices;
 using VoxelThing.Game;
 using VoxelThing.Game.Maths;
+using VoxelThing.Game.Utils;
 using VoxelThing.Game.Worlds;
 using VoxelThing.Game.Worlds.Chunks;
 
@@ -12,6 +13,8 @@ namespace VoxelThing.Client.Rendering.Worlds;
 
 public class WorldRenderer(MainRenderer mainRenderer) : IDisposable
 {
+    public Profiler Profiler => mainRenderer.Profiler;
+    
 	public int HorizontalDistance = 16;
 	public int VerticalDistance = 8;
     
@@ -40,6 +43,7 @@ public class WorldRenderer(MainRenderer mainRenderer) : IDisposable
     
     public void RefreshRenderers()
     {
+        Profiler.Push("refresh-renderers");
         foreach (ChunkRenderer chunkRenderer in chunkRenderers)
             chunkRenderer.Dispose();
 
@@ -66,11 +70,13 @@ public class WorldRenderer(MainRenderer mainRenderer) : IDisposable
             sortedChunkRenderers.Add(chunkRenderer);
         }
         
-        UpdateRendererPositions();
+        UpdateChunkPositions();
+        Profiler.Pop();
     }
 
-    public void UpdateRendererPositions()
+    public void UpdateChunkPositions()
     {
+        Profiler.Push("move-chunks");
         Vector3d cameraPosition = mainRenderer.Camera.Position;
         int x = (int)Math.Floor(cameraPosition.X / Chunk.Length);
         int y = (int)Math.Floor(cameraPosition.Y / Chunk.Length);
@@ -106,7 +112,10 @@ public class WorldRenderer(MainRenderer mainRenderer) : IDisposable
             chunkRenderer.SetPosition(cx, cy, cz);
         }
 
+        Profiler.Push("sort");
         sortedChunkRenderers.Sort(chunkRendererComparer);
+        Profiler.Pop();
+        Profiler.Pop();
     }
 
     public void Draw()
@@ -124,22 +133,24 @@ public class WorldRenderer(MainRenderer mainRenderer) : IDisposable
         Matrix4 viewProjection = mainRenderer.Camera.ViewProjection;
         Vector3d cameraPosition = mainRenderer.Camera.Position;
 
+        const int maxUpdates = 1;
         int updates = 0;
-        int maxUpdates = 1;
         double currentTime = Game.TimeElapsed;
 
+        Profiler.Push("render");
         foreach (ChunkRenderer chunkRenderer in sortedChunkRenderers)
         {
             if (!chunkRenderer.NeedsUpdate
                 || !mainRenderer.Camera.Frustum.TestAabb(chunkRenderer.Aabb))
                 continue;
 
-            chunkRenderer.Render();
+            chunkRenderer.Render(Profiler);
 
             if (++updates >= maxUpdates)
                 break;
         }
 
+        Profiler.PopPush("draw");
         var worldShader = mainRenderer.Shaders.Get<WorldShader>();
         worldShader.Use();
 
@@ -171,6 +182,7 @@ public class WorldRenderer(MainRenderer mainRenderer) : IDisposable
         worldShader.Fade.Set(0.0f);
         worldShader.CameraPosition.Set(Vector3.Zero);
         Shader.Stop();
+        Profiler.Pop();
     }
     
     public void MarkNeighborUpdateAt(int x, int y, int z)

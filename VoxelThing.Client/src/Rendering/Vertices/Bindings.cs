@@ -5,10 +5,10 @@ namespace VoxelThing.Client.Rendering.Vertices;
 
 public abstract class Bindings(VertexLayout layout) : IDisposable
 {
-    public bool IsEmpty => CoordinateCount == 0;
+    public bool IsEmpty => DataSize == 0;
 
 	protected readonly VertexLayout Layout = layout;
-	protected int CoordinateCount;
+	protected abstract int DataSize { get; }
     protected int Vbo { get; private set; }
 
     private int vao;
@@ -57,7 +57,7 @@ public abstract class Bindings(VertexLayout layout) : IDisposable
 
     public void Upload(bool dynamic)
     {
-        if (CoordinateCount == 0)
+        if (DataSize == 0)
             return;
         
         if (vao == 0)
@@ -76,7 +76,7 @@ public abstract class Bindings(VertexLayout layout) : IDisposable
 
     private void UploadIndices(bool dynamic)
     {
-        if (CoordinateCount == 0 || nextIndices is null || ebo == 0) return;
+        if (DataSize == 0 || nextIndices is null || ebo == 0) return;
 
         GL.BindBuffer(BufferTarget.ElementArrayBuffer, ebo);
         GL.BufferData(BufferTarget.ElementArrayBuffer, nextIndices.Count * 4, nextIndices.GetInternalArray(),
@@ -86,9 +86,8 @@ public abstract class Bindings(VertexLayout layout) : IDisposable
     public virtual void Clear()
     {
         indexCount = nextIndices?.Count ?? 0;
-        verticesDrawn = indexCount > 0 ? indexCount : (int)(CoordinateCount / Layout.VertexSize);
+        verticesDrawn = indexCount > 0 ? indexCount : DataSize;
         maxIndex = 0;
-        CoordinateCount = 0;
         nextIndices?.Clear();
     }
 

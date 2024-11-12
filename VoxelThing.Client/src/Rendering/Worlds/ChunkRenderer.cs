@@ -4,6 +4,7 @@ using VoxelThing.Client.Rendering.Vertices;
 using VoxelThing.Client.Worlds;
 using VoxelThing.Game.Blocks;
 using VoxelThing.Game.Maths;
+using VoxelThing.Game.Utils;
 using VoxelThing.Game.Worlds;
 using VoxelThing.Game.Worlds.Chunks;
 
@@ -51,7 +52,7 @@ public class ChunkRenderer : IDisposable
         firstAppearance = 0.0;
     }
 
-    public void Render()
+    public void Render(Profiler? profiler = null)
     {
         if (!NeedsUpdate) return;
         NeedsUpdate = false;
@@ -69,7 +70,9 @@ public class ChunkRenderer : IDisposable
         opaqueBindings ??= new(VertexLayout.World);
         translucentBindings ??= new(VertexLayout.World);
 
+        profiler?.Push("load-chunks");
         ChunkCache chunkCache = new(world, X, Y, Z);
+        
         BlockRendererArguments args = new()
         {
             OpaqueBindings = opaqueBindings,
@@ -78,6 +81,7 @@ public class ChunkRenderer : IDisposable
             Chunk = chunk
         };
 
+        profiler?.PopPush("build-buffers");
         for (int xx = 0; xx < Chunk.Length; xx++)
         for (int yy = 0; yy < Chunk.Length; yy++)
         for (int zz = 0; zz < Chunk.Length; zz++)
@@ -86,11 +90,13 @@ public class ChunkRenderer : IDisposable
                 X = xx,
                 Y = yy,
                 Z = zz,
-            });
+            }, profiler);
         
         EmptyOpaque = opaqueBindings.IsEmpty;
         EmptyTranslucent = translucentBindings.IsEmpty;
 
+        profiler?.PopPush("upload-buffers");
+        
         if (!EmptyOpaque) opaqueBindings.Upload(true);
         else
         {
@@ -104,6 +110,8 @@ public class ChunkRenderer : IDisposable
             translucentBindings.Dispose();
             translucentBindings = null;
         }
+        
+        profiler?.Pop();
     }
 
     public void DrawOpaque()

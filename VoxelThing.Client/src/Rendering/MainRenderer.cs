@@ -9,12 +9,15 @@ using VoxelThing.Client.Rendering.Textures;
 using VoxelThing.Client.Rendering.Utils;
 using VoxelThing.Client.Rendering.Worlds;
 using VoxelThing.Game.Maths;
+using VoxelThing.Game.Utils;
 using VoxelThing.Game.Worlds.Chunks;
 
 namespace VoxelThing.Client.Rendering;
 
 public class MainRenderer : IDisposable
 {
+    public Profiler Profiler => Game.Profiler;
+
     public readonly Game Game;
     public readonly Camera Camera;
     public readonly ScreenDimensions ScreenDimensions;
@@ -61,7 +64,7 @@ public class MainRenderer : IDisposable
 
         if (previousUpdateLocation.DistanceToSquared(Camera.Position) > 64.0)
         {
-            WorldRenderer.UpdateRendererPositions();
+            WorldRenderer.UpdateChunkPositions();
             previousUpdateLocation = Camera.Position;
         }
 
@@ -74,7 +77,11 @@ public class MainRenderer : IDisposable
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
         if (Game.World is not null)
+        {
+            Profiler.Push("world");
             Render3D();
+            Profiler.Pop();
+        }
         Render2D();
     }
 
@@ -82,6 +89,7 @@ public class MainRenderer : IDisposable
     {
         Draw3D.Setup();
 
+        Profiler.Push("setup");
         SetupSkyShader();
         SetupCloudShader();
         SetupWorldShader();
@@ -93,14 +101,15 @@ public class MainRenderer : IDisposable
         state.Enable(EnableCap.DepthTest);
         state.CullFace(CullFaceMode.Front);
         
+        Profiler.PopPush("sky");
         skyFramebuffer.Use();
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
         WorldRenderer.DrawSky(state);
         Framebuffer.Stop();
         WorldRenderer.DrawSky(state);
         
+        Profiler.PopPush("chunks");
         state.CullFace(CullFaceMode.Back);
-
         Textures.Get("blocks.png", TextureFlags.Mipmapped).Use();
         UseSkyTexture(1);
         WorldRenderer.Draw();
@@ -109,52 +118,19 @@ public class MainRenderer : IDisposable
 
         if (Game.Player is not null)
         {
+            Profiler.PopPush("entities");
             string skin = $"entities/{Game.Skins[Game.Settings.Skin]}.png";
             Game.Player.SetTexture(skin);
             if (Game.Settings.ThirdPerson)
                 EntityRenderer.RenderEntity(Game.Player);
         }
-        
-        Billboard billboard = new()
-        {
-            Texture = Textures.Get("graphics.png", TextureFlags.Mipmapped),
-            Spherical = true
-        };
-        
-        Draw3D.DrawBillboard(billboard with
-        {
-            Position = (Vector3)(Vector3d.UnitX - Camera.Position),
-            ColorRgb = (1, 0, 0)
-        });
-        Draw3D.DrawBillboard(billboard with
-        {
-            Position = (Vector3)(-Vector3d.UnitX - Camera.Position),
-            ColorRgb = (0, 1, 1)
-        });
-        Draw3D.DrawBillboard(billboard with
-        {
-            Position = (Vector3)(Vector3d.UnitY - Camera.Position),
-            ColorRgb = (0, 1, 0)
-        });
-        Draw3D.DrawBillboard(billboard with
-        {
-            Position = (Vector3)(-Vector3d.UnitY - Camera.Position),
-            ColorRgb = (1, 0, 1)
-        });
-        Draw3D.DrawBillboard(billboard with
-        {
-            Position = (Vector3)(Vector3d.UnitZ - Camera.Position),
-            ColorRgb = (0, 0, 1)
-        });
-        Draw3D.DrawBillboard(billboard with
-        {
-            Position = (Vector3)(-Vector3d.UnitZ - Camera.Position),
-            ColorRgb = (1, 1, 0)
-        });
 
+        Profiler.PopPush("clouds");
         Textures.Get("environment/clouds.png", TextureFlags.Mipmapped).Use();
         WorldRenderer.DrawClouds(state);
         Shader.Stop();
+        
+        Profiler.Pop();
     }
 
     private void Render2D()

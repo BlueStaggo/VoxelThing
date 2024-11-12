@@ -1,7 +1,6 @@
 using OpenTK.Mathematics;
-using PDS;
 using VoxelThing.Game.Worlds.Chunks;
-using VoxelThing.Game.Maths;
+using VoxelThing.Game.Utils;
 
 namespace VoxelThing.Game.Worlds.Storage;
 
@@ -13,6 +12,8 @@ public class ChunkStorage(World world)
 
     protected readonly World World = world;
     protected readonly Dictionary<Vector3i, Chunk> Chunks = [];
+
+    public Profiler? Profiler => World.Profiler; 
 
     public Chunk? GetChunkAt(int x, int y, int z)
     {
@@ -27,6 +28,7 @@ public class ChunkStorage(World world)
 
     protected Chunk LoadChunk(int x, int y, int z)
     {
+        Profiler?.Push("load-chunk");
         if (World.SaveHandler.LoadChunkData(x, y, z) is { } chunkData)
             return Chunk.Deserialize(World, x, y, z, chunkData);
             
@@ -34,6 +36,8 @@ public class ChunkStorage(World world)
         World.GenerateChunk(chunk);
         chunk.MarkNoSave();
         World.OnChunkAdded(x, y, z);
+        
+        Profiler?.Pop();
         return chunk;
     }
 

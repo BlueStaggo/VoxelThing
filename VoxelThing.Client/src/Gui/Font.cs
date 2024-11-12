@@ -113,9 +113,12 @@ public class Font
 				float uMax = uMin + w / 256.0f;
 				float vMax = vMin + 1.0f / 16.0f;
 
+				float fixedX = renderer.ScreenDimensions.GetFixedPosition(x);
+				float fixedY = renderer.ScreenDimensions.GetFixedPosition(y);
+
 				draw2D.AddVertex(
-                    renderer.ScreenDimensions.GetFixedPosition(x),
-                    renderer.ScreenDimensions.GetFixedPosition(y),
+                    fixedX,
+                    fixedY,
                     r * modR,
                     g * modG,
                     b * modB,
@@ -123,8 +126,8 @@ public class Font
                     vMin
 				);
 				draw2D.AddVertex(
-                    renderer.ScreenDimensions.GetFixedPosition(x),
-                    renderer.ScreenDimensions.GetFixedPosition(y + scale * 16),
+                    fixedX,
+                    fixedY + scale * 16,
                     r * modR,
                     g * modG,
                     b * modB,
@@ -132,8 +135,8 @@ public class Font
                     vMax
 				);
 				draw2D.AddVertex(
-                    renderer.ScreenDimensions.GetFixedPosition(x + scale * w),
-                    renderer.ScreenDimensions.GetFixedPosition(y + scale * 16),
+                    fixedX + scale * w,
+                    fixedY + scale * 16,
                     r * modR,
                     g * modG,
                     b * modB,
@@ -141,8 +144,8 @@ public class Font
                     vMax
 				);
 				draw2D.AddVertex(
-                    renderer.ScreenDimensions.GetFixedPosition(x + scale * w),
-                    renderer.ScreenDimensions.GetFixedPosition(y),
+                    fixedX + scale * w,
+                    fixedY,
                     r * modR,
                     g * modG,
                     b * modB,

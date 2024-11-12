@@ -6,6 +6,7 @@ using VoxelThing.Game.Worlds.Chunks;
 using VoxelThing.Game.Worlds.Generation;
 using VoxelThing.Game.Worlds.Storage;
 using VoxelThing.Game.Maths;
+using VoxelThing.Game.Utils;
 
 namespace VoxelThing.Game.Worlds;
 
@@ -17,6 +18,8 @@ public class World : IBlockAccess
 
     protected readonly ChunkStorage ChunkStorage;
     private readonly GenCache genCache;
+
+    public Profiler? Profiler { get; protected init;  }
 
     public World(ISaveHandler saveHandler, WorldInfo? info = null)
     {
@@ -125,7 +128,7 @@ public class World : IBlockAccess
 			if (block is not null)
 			{
 				Aabb collision = block.GetCollisionBox(this, x, y, z);
-				if (collision.Contains(position.X, position.Y, position.Z))
+				if (collision.Contains(position))
 					return new(x, y, z, collision.GetClosestFace(position, direction));
 			}
 

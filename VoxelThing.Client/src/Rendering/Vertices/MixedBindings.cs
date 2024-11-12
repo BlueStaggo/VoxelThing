@@ -2,47 +2,53 @@ using System.Text;
 
 namespace VoxelThing.Client.Rendering.Vertices;
 
-public class MixedBindings(VertexLayout layout) : Bindings(layout)
+public class MixedBindings : Bindings
 {
+    protected override int DataSize => dataSize;
+
     private MemoryStream dataStream = new();
-    private BinaryWriter? binaryWriter;
+    private BinaryWriter binaryWriter;
+    private int dataSize;
 
     public MixedBindings(params VertexType[] types) : this(new VertexLayout(types)) { }
 
-    private BinaryWriter GetBinaryWriter() => binaryWriter ??= new(dataStream, Encoding.UTF8, true);
+    public MixedBindings(VertexLayout layout) : base(layout)
+    {
+        binaryWriter = new(dataStream, Encoding.UTF8, true);
+    }
 
     public MixedBindings Put(byte vertex)
     {
-        GetBinaryWriter().Write(vertex);
-        CoordinateCount++;
+        binaryWriter.Write(vertex);
+        dataSize++;
         return this;
     }
 
     public MixedBindings Put(short vertex)
     {
-        GetBinaryWriter().Write(vertex);
-        CoordinateCount++;
+        binaryWriter.Write(vertex);
+        dataSize += sizeof(short);
         return this;
     }
 
     public MixedBindings Put(int vertex)
     {
-        GetBinaryWriter().Write(vertex);
-        CoordinateCount++;
+        binaryWriter.Write(vertex);
+        dataSize += sizeof(int);
         return this;
     }
 
     public MixedBindings Put(float vertex)
     {
-        GetBinaryWriter().Write(vertex);
-        CoordinateCount++;
+        binaryWriter.Write(vertex);
+        dataSize += sizeof(float);
         return this;
     }
 
     public MixedBindings Put(params byte[] vertices)
     {
-        GetBinaryWriter().Write(vertices);
-        CoordinateCount += vertices.Length;
+        binaryWriter.Write(vertices);
+        dataSize += vertices.Length;
         return this;
     }
 
@@ -54,6 +60,8 @@ public class MixedBindings(VertexLayout layout) : Bindings(layout)
         if (dataStream.Length > 256)
         {
             dataStream = new();
+            binaryWriter.Dispose();
+            binaryWriter = new(dataStream, Encoding.UTF8, true);
         }
         else
         {
@@ -61,16 +69,14 @@ public class MixedBindings(VertexLayout layout) : Bindings(layout)
             dataStream.SetLength(0);
         }
 
-        binaryWriter?.Dispose();
-        binaryWriter = null;
-
+        dataSize = 0;
+        
         base.Clear();
     }
 
     protected override void Dispose(bool disposing)
     {
-        binaryWriter?.Dispose();
-        binaryWriter = null;
+        binaryWriter.Dispose();
         base.Dispose(disposing);
     }
 }

@@ -4,6 +4,8 @@ namespace VoxelThing.Client.Rendering.Vertices;
 
 public class FloatBindings : Bindings
 {
+    protected override int DataSize => nextData.Count;
+
     private readonly List<float> nextData = [];
 
     public FloatBindings(VertexLayout layout) : base(layout)
@@ -17,14 +19,12 @@ public class FloatBindings : Bindings
     public FloatBindings Put(float vertex)
     {
         nextData.Add(vertex);
-        CoordinateCount++;
         return this;
     }
 
     public FloatBindings Put(params float[] vertices)
     {
         nextData.AddRange(vertices);
-        CoordinateCount += vertices.Length;
         return this;
     }
 

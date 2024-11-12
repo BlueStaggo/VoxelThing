@@ -1,4 +1,5 @@
 using VoxelThing.Client.Rendering.Vertices;
+using VoxelThing.Game.Utils;
 using VoxelThing.Game.Worlds;
 using VoxelThing.Game.Worlds.Chunks;
 
@@ -13,4 +14,5 @@ public readonly struct BlockRendererArguments
     public int X { get; init; }
     public int Y { get; init; }
     public int Z { get; init; }
+    public Profiler? Profiler { get; init; }
 }

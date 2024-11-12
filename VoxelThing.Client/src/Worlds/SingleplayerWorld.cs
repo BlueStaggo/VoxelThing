@@ -3,10 +3,15 @@ using VoxelThing.Game.Worlds.Storage;
 
 namespace VoxelThing.Client.Worlds;
 
-public class SingleplayerWorld(Game game, ISaveHandler saveHandler, WorldInfo? info = null)
-    : World(saveHandler, info)
+public class SingleplayerWorld : World
 {
-    public readonly Game Game = game;
+    public readonly Game Game;
+
+    public SingleplayerWorld(Game game, ISaveHandler saveHandler, WorldInfo? info = null) : base(saveHandler, info)
+    {
+        Game = game;
+        Profiler = Game.Profiler;
+    }
 
     public override void OnBlockUpdate(int x, int y, int z)
     {
