@@ -101,17 +101,19 @@ public class IngameScreen(Game game) : Screen(game)
         double swing = Math.Max(swingTick - Game.PartialTick, 0.0) / 10.0;
         swing *= swing;
 
-        float bobX = (float)(Math.Sin(swing * Math.PI) / -3.0) * handSize;
+        float bobX = (float)(Math.Sin(swing * Math.PI) / -2.0) * handSize;
         float bobY = (float)((1.0 - hover * (block == null ? 1.0 : 0.9))
-                             + (Math.Sin(swing * 2.0 * Math.PI) / 6.0)) * handSize;
+                             + (Math.Sin(swing * 2.0 * Math.PI) / 9.0)) * handSize;
 
         if (Game.Settings.ViewBobbing)
         {
             double renderWalk = Game.Player.RenderWalk.GetInterpolatedValue(Game.PartialTick);
             double fallAmount = Game.Player.FallAmount.GetInterpolatedValue(Game.PartialTick);
-            bobX += (float)(renderWalk * -0.05) * handSize;
-            bobY += (float)((Math.Abs(renderWalk) * 0.05)
+            bobX += (float)(renderWalk * -0.02) * handSize;
+            bobY += (float)((Math.Abs(renderWalk) * 0.025)
                             + Math.Max(fallAmount * 0.1, -0.25)) * handSize;
+            bobX -= (float)Game.Player.LookYawOffset.GetInterpolatedValue(Game.PartialTick) * handSize * 0.0025f;
+            bobY += (float)Game.Player.LookPitchOffset.GetInterpolatedValue(Game.PartialTick) * handSize * 0.0025f;
         }
 
         renderer.Draw2D.DrawQuad(new()

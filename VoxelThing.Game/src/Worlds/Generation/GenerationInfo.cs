@@ -95,8 +95,8 @@ public class GenerationInfo
 
     public bool GetCave(int x, int y, int z)
     {
-        if (lastQueryLayer != y >> Chunk.SizePow2)
-            GenerateCaves(y >> Chunk.SizePow2);
+        if (lastQueryLayer != y >> Chunk.LengthPow2)
+            GenerateCaves(y >> Chunk.LengthPow2);
         
 		int xx = x / 4;
 		int yy = (y & Chunk.LengthMask) / 4;
@@ -125,9 +125,9 @@ public class GenerationInfo
 		for (int y = 0; y < LerpMapLength; y++)
 		for (int z = 0; z < LerpMapLength; z++)
         {
-			int xx = (x << 2) + (ChunkX << Chunk.SizePow2);
-			int yy = (y << 2) + (layer << Chunk.SizePow2);
-			int zz = (z << 2) + (ChunkZ << Chunk.SizePow2);
+			int xx = (x << 2) + (ChunkX << Chunk.LengthPow2);
+			int yy = (y << 2) + (layer << Chunk.LengthPow2);
+			int zz = (z << 2) + (ChunkZ << Chunk.LengthPow2);
 
 			float cheese = caveNoise.Noise3_ImproveXZ(xx / CheeseScaleXz, yy / CheeseScaleY, zz / CheeseScaleXz);
 			caveInfo[x, y, z] = cheese;

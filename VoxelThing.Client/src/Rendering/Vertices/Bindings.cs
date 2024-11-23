@@ -3,17 +3,18 @@ using VoxelThing.Game;
 
 namespace VoxelThing.Client.Rendering.Vertices;
 
-public abstract class Bindings(VertexLayout layout) : IDisposable
+public abstract class Bindings(VertexLayout layout, PrimitiveType primitiveType = PrimitiveType.Triangles) : IDisposable
 {
     public bool IsEmpty => DataSize == 0;
-
+    public PrimitiveType PrimitiveType = primitiveType;
+    
 	protected readonly VertexLayout Layout = layout;
 	protected abstract int DataSize { get; }
     protected int Vbo { get; private set; }
 
     private int vao;
     private int verticesDrawn;
-
+    
     private List<int>? nextIndices;
 	private int ebo;
 	private int indexCount;
@@ -79,7 +80,7 @@ public abstract class Bindings(VertexLayout layout) : IDisposable
         if (DataSize == 0 || nextIndices is null || ebo == 0) return;
 
         GL.BindBuffer(BufferTarget.ElementArrayBuffer, ebo);
-        GL.BufferData(BufferTarget.ElementArrayBuffer, nextIndices.Count * 4, nextIndices.GetInternalArray(),
+        GL.BufferData(BufferTarget.ElementArrayBuffer, nextIndices.Count * sizeof(int), nextIndices.GetInternalArray(),
             dynamic ? BufferUsageHint.DynamicDraw : BufferUsageHint.StaticDraw);
     }
 
@@ -95,9 +96,9 @@ public abstract class Bindings(VertexLayout layout) : IDisposable
     {
         GL.BindVertexArray(vao);
         if (indexCount > 0 && ebo != 0)
-            GL.DrawElements(PrimitiveType.Triangles, verticesDrawn, DrawElementsType.UnsignedInt, 0);
+            GL.DrawElements(PrimitiveType, verticesDrawn, DrawElementsType.UnsignedInt, 0);
         else if (verticesDrawn > 0)
-            GL.DrawArrays(PrimitiveType.Triangles, 0, verticesDrawn);
+            GL.DrawArrays(PrimitiveType, 0, verticesDrawn);
     }
 
     public void Dispose()

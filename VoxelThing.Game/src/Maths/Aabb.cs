@@ -15,7 +15,8 @@ public readonly record struct Aabb(
     public Vector3d Mid => new(MidX, MidY, MidZ);
 
     public Aabb(Vector3d position, double radius, double height)
-        : this(position.X - radius, position.Y, position.Z - radius, position.X + radius, position.Y + height, position.Z + radius) { }
+        : this(position.X - radius / 2.0, position.Y, position.Z - radius / 2.0,
+            position.X + radius / 2.0, position.Y + height, position.Z + radius / 2.0) { }
 
     public static Aabb FromExtents(double x, double y, double z, double ex, double ey, double ez)
         => new(x, y, z, x + ex, y + ey, z + ez);
@@ -28,10 +29,19 @@ public readonly record struct Aabb(
 
     public Aabb ExpandToPoint(double x, double y, double z)
         => new(x < 0.0 ? MinX + x : MinX, y < 0.0 ? MinY + y : MinY, z < 0.0 ? MinZ + z : MinZ,
-            x > 0.0 ? MaxX + x : MaxX, y > 0.0 ? MaxY + y : MaxY, z > 0.0 ? MaxZ + z : MaxZ);
+               x > 0.0 ? MaxX + x : MaxX, y > 0.0 ? MaxY + y : MaxY, z > 0.0 ? MaxZ + z : MaxZ);
 
     public Aabb ExpandToPoint(Vector3d position)
         => ExpandToPoint(position.X, position.Y, position.Z);
+    
+    public Aabb Expand(double x, double y, double z)
+        => new(MinX - x, MinY - y, MinZ - z, MaxX + x, MaxY + y, MaxZ + z);
+
+    public Aabb Expand(double x)
+        => Expand(x, x, x);
+
+    public Aabb Expand(Vector3d position)
+        => Expand(position.X, position.Y, position.Z);
 
     public double CalculateXOffset(Aabb other, double offset)
     {
@@ -109,11 +119,11 @@ public readonly record struct Aabb(
         ];
 
         Direction closestFace = 0;
-        double closestDistance = faces[0].LengthSquared;
+        double closestDistance = (faces[0] - position).LengthSquared;
 
         for (int i = 1; i < faces.Length; i++)
         {
-            double distance = faces[i].LengthSquared;
+            double distance = (faces[i] - position).LengthSquared;
             if (distance < closestDistance)
             {
                 closestDistance = distance;

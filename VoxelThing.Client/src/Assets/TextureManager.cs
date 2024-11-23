@@ -8,8 +8,13 @@ public class TextureManager : IDisposable
     private readonly Dictionary<string, Texture> textures = [];
     private Texture? missingTexture = null;
 
+    public bool MipmapsEnabled = true;
+
     public Texture Get(string path, TextureFlags flags = TextureFlags.None)
     {
+        if (!MipmapsEnabled)
+            flags ^= TextureFlags.Mipmapped;
+        
         string id = ((uint)flags) + path;
 
         if (textures.TryGetValue(id, out Texture? existingTexture))

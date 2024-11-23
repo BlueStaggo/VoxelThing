@@ -2,7 +2,6 @@ using OpenTK.Mathematics;
 using VoxelThing.Client.Rendering.Vertices;
 using VoxelThing.Game;
 using VoxelThing.Game.Blocks;
-using VoxelThing.Game.Utils;
 using VoxelThing.Game.Worlds;
 using VoxelThing.Game.Worlds.Chunks;
 
@@ -26,47 +25,33 @@ public static class BlockRenderer
 
     private static byte GetShade(int amount) => (byte)((1.0f - ShadeFactor * amount) * 255.0f);
 
-    public static bool Render(BlockRendererArguments args, Profiler? profiler = null)
+    public static void Render(BlockRendererArguments args)
     {
-	    profiler?.Push("block-access");
-        Block? block = args.Chunk.GetBlock(args.X, args.Y, args.Z);
-        profiler?.Pop();
-        if (block is null) return false;
-
-        int xx = args.Chunk.ToGlobalX(args.X);
-        int yy = args.Chunk.ToGlobalY(args.Y);
-        int zz = args.Chunk.ToGlobalZ(args.Z);
+        Block? block = args.BlockAccess.GetBlock(args.X, args.Y, args.Z);
+        if (block is null)
+	        return;
 
 		FaceRenderingArguments fargs = new(args, block);
 		for (Direction direction = 0; (int)direction < 6; direction++)
-		{
-			profiler?.Push("check-face");
 	        if (block.IsFaceDrawn(
 	            args.BlockAccess,
-	            xx + direction.GetX(),
-	            yy + direction.GetY(),
-	            zz + direction.GetZ(),
+	            args.X + direction.GetX(),
+	            args.Y + direction.GetY(),
+	            args.Z + direction.GetZ(),
 	            direction
             ))
-	        {
-		        profiler?.PopPush("render-face");
                 SideRenderers[(int)direction](fargs);
-	        }
-			profiler?.Pop();
-		}
-
-        return true;
     }
 
 	private static void RenderNorthFace(FaceRenderingArguments args)
     {
-		int x = args.X;
-        int y = args.Y;
-        int z = args.Z;
+		int gx = args.X;
+        int gy = args.Y;
+        int gz = args.Z;
 		
-        int gx = args.Chunk.ToGlobalX(x);
-        int gy = args.Chunk.ToGlobalY(y);
-        int gz = args.Chunk.ToGlobalZ(z);
+        int x = gx & Chunk.LengthMask;
+        int y = gy & Chunk.LengthMask;
+        int z = gz & Chunk.LengthMask;
 
 		Vector2i texture = args.Block.Texture.Get(Direction.North, args.BlockAccess, gx, gy, gz);
 		float texX = texture.X * Block.TextureResolution;
@@ -84,13 +69,13 @@ public static class BlockRenderer
 
 	private static void RenderSouthFace(FaceRenderingArguments args)
     {
-		int x = args.X;
-        int y = args.Y;
-        int z = args.Z;
+		int gx = args.X;
+        int gy = args.Y;
+        int gz = args.Z;
 		
-        int gx = args.Chunk.ToGlobalX(x);
-        int gy = args.Chunk.ToGlobalY(y);
-        int gz = args.Chunk.ToGlobalZ(z);
+        int x = gx & Chunk.LengthMask;
+        int y = gy & Chunk.LengthMask;
+        int z = gz & Chunk.LengthMask;
 
 		Vector2i texture = args.Block.Texture.Get(Direction.South, args.BlockAccess, gx, gy, gz);
 		float texX = texture.X * Block.TextureResolution;
@@ -108,13 +93,13 @@ public static class BlockRenderer
 
 	private static void RenderWestFace(FaceRenderingArguments args)
     {
-		int x = args.X;
-        int y = args.Y;
-        int z = args.Z;
+		int gx = args.X;
+        int gy = args.Y;
+        int gz = args.Z;
 		
-        int gx = args.Chunk.ToGlobalX(x);
-        int gy = args.Chunk.ToGlobalY(y);
-        int gz = args.Chunk.ToGlobalZ(z);
+        int x = gx & Chunk.LengthMask;
+        int y = gy & Chunk.LengthMask;
+        int z = gz & Chunk.LengthMask;
 
 		Vector2i texture = args.Block.Texture.Get(Direction.West, args.BlockAccess, gx, gy, gz);
 		float texX = texture.X * Block.TextureResolution;
@@ -132,13 +117,13 @@ public static class BlockRenderer
 
 	private static void RenderEastFace(FaceRenderingArguments args)
     {
-		int x = args.X;
-        int y = args.Y;
-        int z = args.Z;
+		int gx = args.X;
+        int gy = args.Y;
+        int gz = args.Z;
 		
-        int gx = args.Chunk.ToGlobalX(x);
-        int gy = args.Chunk.ToGlobalY(y);
-        int gz = args.Chunk.ToGlobalZ(z);
+        int x = gx & Chunk.LengthMask;
+        int y = gy & Chunk.LengthMask;
+        int z = gz & Chunk.LengthMask;
 
 		Vector2i texture = args.Block.Texture.Get(Direction.East, args.BlockAccess, gx, gy, gz);
 		float texX = texture.X * Block.TextureResolution;
@@ -156,13 +141,13 @@ public static class BlockRenderer
 
 	private static void RenderBottomFace(FaceRenderingArguments args)
     {
-		int x = args.X;
-        int y = args.Y;
-        int z = args.Z;
+		int gx = args.X;
+        int gy = args.Y;
+        int gz = args.Z;
 		
-        int gx = args.Chunk.ToGlobalX(x);
-        int gy = args.Chunk.ToGlobalY(y);
-        int gz = args.Chunk.ToGlobalZ(z);
+        int x = gx & Chunk.LengthMask;
+        int y = gy & Chunk.LengthMask;
+        int z = gz & Chunk.LengthMask;
 
 		Vector2i texture = args.Block.Texture.Get(Direction.Down, args.BlockAccess, gx, gy, gz);
 		float texX = texture.X * Block.TextureResolution;
@@ -180,13 +165,13 @@ public static class BlockRenderer
 
 	private static void RenderTopFace(FaceRenderingArguments args)
     {
-		int x = args.X;
-        int y = args.Y;
-        int z = args.Z;
+		int gx = args.X;
+        int gy = args.Y;
+        int gz = args.Z;
 		
-        int gx = args.Chunk.ToGlobalX(x);
-        int gy = args.Chunk.ToGlobalY(y);
-        int gz = args.Chunk.ToGlobalZ(z);
+        int x = gx & Chunk.LengthMask;
+        int y = gy & Chunk.LengthMask;
+        int z = gz & Chunk.LengthMask;
 
 		Vector2i texture = args.Block.Texture.Get(Direction.Up, args.BlockAccess, gx, gy, gz);
 		float texX = texture.X * Block.TextureResolution;
@@ -212,7 +197,6 @@ public static class BlockRenderer
 			= block.Translucent ? baseArgs.TranslucentBindings : baseArgs.OpaqueBindings;
 		public readonly Block Block = block;
 		public readonly IBlockAccess BlockAccess = baseArgs.BlockAccess;
-		public readonly Chunk Chunk = baseArgs.Chunk;
 		public readonly int X = baseArgs.X;
 		public readonly int Y = baseArgs.Y;
 		public readonly int Z = baseArgs.Z;

@@ -40,8 +40,8 @@ public class PauseScreen : Screen
         });
         exitButton.OnClick += (_, _) =>
         {
-            game.CurrentScreen = Parent;
             game.ExitWorld();
+            game.CurrentScreen = Parent;
         };
     }
 

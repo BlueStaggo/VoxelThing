@@ -28,7 +28,11 @@ public class CompoundItem(Dictionary<string, StructureItem> value) : StructureIt
 
     public StructureItem? this[string index]
     {
-        get => Value[index];
+        get
+        {
+            Value.TryGetValue(index, out StructureItem? item);
+            return item;
+        }
         set
         {
             if (value is null) Value.Remove(index);

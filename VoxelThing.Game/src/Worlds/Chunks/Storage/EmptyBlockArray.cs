@@ -8,7 +8,6 @@ public class EmptyBlockArray : BlockArray
     public static readonly EmptyBlockArray Instance = new();
 
     protected override int MaxPaletteSize => 0;
-    protected override CompoundItem SerializedData => new();
 
     protected internal override int GetBlockId(int x, int y, int z) => 0;
     protected internal override void SetBlockId(int x, int y, int z, int id) { }

@@ -1,4 +1,3 @@
-using System.IO.Compression;
 using PDS;
 
 namespace VoxelThing.Game.Worlds.Storage;
@@ -11,7 +10,7 @@ public class EmptySaveHandler : ISaveHandler
 
     public void Delete() { }
     public CompoundItem? LoadChunkData(int x, int y, int z) => null;
-    public CompoundItem? LoadData(string id, CompressionLevel compression) => null;
+    public CompoundItem? LoadData(string id, bool compressed = false) => null;
     public void SaveChunkData(int x, int y, int z, CompoundItem data) { }
-    public void SaveData(string id, CompoundItem data, CompressionLevel compression) { }
+    public void SaveData(string id, CompoundItem data, bool compressed = true) { }
 }

@@ -1,4 +1,3 @@
-using System.IO.Compression;
 using PDS;
 
 namespace VoxelThing.Game.Worlds.Storage;
@@ -20,14 +19,14 @@ public class FolderSaveHandler : ISaveHandler
     private string GetChunkFilePath(int x, int y, int z)
         => Path.Combine(chunkFolder, $"{x}_{y}_{z}.dat");
 
-    public CompoundItem? LoadData(string id, CompressionLevel compression)
+    public CompoundItem? LoadData(string id, bool compressed = false)
     {
         if (!id.EndsWith(".dat"))
-            id = id + ".dat";
+            id += ".dat";
         string file = Path.Combine(root, id);
         try
         {
-            StructureItem? item = StructureItem.ReadFromPath(file, compression);
+            StructureItem item = StructureItem.ReadFromPath(file, compressed);
             return item as CompoundItem;
         }
         catch (IOException)
@@ -36,14 +35,14 @@ public class FolderSaveHandler : ISaveHandler
         }
     }
 
-    public void SaveData(string id, CompoundItem data, CompressionLevel compression)
+    public void SaveData(string id, CompoundItem data, bool compressed = false)
     {
         if (!id.EndsWith(".dat"))
-            id = id + ".dat";
+            id += ".dat";
         string file = Path.Combine(root, id);
         try
         {
-            data.WriteToPath(file, compression);
+            data.WriteToPath(file, compressed);
         }
         catch (IOException exception)
         {
@@ -53,10 +52,10 @@ public class FolderSaveHandler : ISaveHandler
     }
 
     public CompoundItem? LoadChunkData(int x, int y, int z)
-        => LoadData(GetChunkFilePath(x, y, z), CompressionLevel.Optimal);
+        => LoadData(GetChunkFilePath(x, y, z), true);
     
     public void SaveChunkData(int x, int y, int z, CompoundItem data)
-        => SaveData(GetChunkFilePath(x, y, z), data, CompressionLevel.Optimal);
+        => SaveData(GetChunkFilePath(x, y, z), data, true);
 
     public void Delete() => DeleteDirectory(root);
 

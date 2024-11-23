@@ -17,9 +17,10 @@ using VoxelThing.Game.Blocks;
 using VoxelThing.Game.Entities;
 using VoxelThing.Game.Utils;
 using VoxelThing.Game.Worlds;
+using VoxelThing.Game.Worlds.Chunks;
 using VoxelThing.Game.Worlds.Storage;
+
 using ErrorCode = OpenTK.Graphics.OpenGL.ErrorCode;
-using Monitor = OpenTK.Windowing.GraphicsLibraryFramework.Monitor;
 
 namespace VoxelThing.Client;
 
@@ -31,17 +32,20 @@ public class Game : GameWindow
     public const int DefaultWindowHeight = ScreenDimensions.VirtualHeight * 2;
     public const int TicksPerSecond = 20;
     public const double TickRate = 1.0 / TicksPerSecond;
-    public const bool EnableCursorGrab = false;
-    public const bool OpenGlDebugging = true;
+    public const bool EnableCursorGrab = true;
+    public const bool OpenGlDebugging = true; // Only enable if your drivers support OpenGL 4.3+
 
     public static double TimeElapsed => GLFW.GetTime();
 
-    public static readonly string[] Skins = ["joel", "staggo", "floof", "talon"];
+    public static readonly string[] Skins = ["joel", "staggo", "fox", "template"];
 
     public readonly Profiler Profiler = new(false);
     public int Fps { get; private set; }
     public double Delta { get; private set; }
     public double PartialTick { get; private set; }
+    public double UpdateStartTime { get; private set; }
+    public int CurrentChunkUpdates;
+    public int ChunkUpdates { get; private set; }
     
     private double tickTime;
     private double fpsTimer;
@@ -103,12 +107,14 @@ public class Game : GameWindow
             Profile = ContextProfile.Core
         })
     {
+        // Registering events
         KeyDown += keysJustPressed.Add;
         TextInput += charactersJustTyped.Add;
         MouseDown += mouseButtonsJustPressed.Add;
         MouseWheel += args => MouseScroll += args.Offset;
         MouseMove += args => MouseDelta += args.Delta; 
         
+        // Variable initialization
         SaveDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VoxelThing");
         WorldDirectory = Path.Combine(SaveDirectory, "worlds");
 
@@ -126,6 +132,7 @@ public class Game : GameWindow
         GL.ClearColor(Color4.Black);
         GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
+        // OpenGL debugging
         if (OpenGlDebugging)
         {
             Console.Error.WriteLine("OpenGL 4.3+ debugging enabled");
@@ -143,14 +150,18 @@ public class Game : GameWindow
 #region Frame Events
     protected override void OnUpdateFrame(FrameEventArgs args)
     {
-        base.OnUpdateFrame(args);
-        
-        Profiler.Push("game");
-        Profiler.Push("update");
+        UpdateStartTime = TimeElapsed;
         
         Delta = args.Time;
         tickTime += Delta;
 
+        base.OnUpdateFrame(args);
+        
+        Profiler.Push("game");
+        Profiler.Push("update");
+
+        // Handle input
+        
         MainRenderer.ScreenDimensions.ManualScale = Settings.GuiScale;
         MainRenderer.ScreenDimensions.UpdateDimensions();
 
@@ -167,6 +178,8 @@ public class Game : GameWindow
         screen.HandleInput();
         bool paused = screen.PausesWorld;
 
+        // Update player
+        
         if (InWorld)
         {
             if (paused)
@@ -181,6 +194,8 @@ public class Game : GameWindow
             }
         }
 
+        // Ticking
+
         while (tickTime > TickRate)
         {
             Profiler.Push("tick");
@@ -191,6 +206,16 @@ public class Game : GameWindow
             {
                 ingameScreen?.Tick();
                 Player?.Tick();
+
+                if (Player is not null)
+                {
+                    Vector3i playerChunkPosition = (Vector3i)(Player.Position.Value / Chunk.Length);
+                    World?.UnloadSurroundingChunks(
+                        playerChunkPosition.X, playerChunkPosition.Y, playerChunkPosition.Z,
+                        Math.Max(Settings.RenderDistanceHorizontal + 1, 5),
+                        Math.Max(Settings.RenderDistanceVertical + 1, 5)
+                    );
+                }
             }
             Profiler.Pop();
         }
@@ -198,24 +223,18 @@ public class Game : GameWindow
         if (!paused)
             PartialTick = tickTime / TickRate;
 
+        
         if (InWorld && Player is not null)
         {
+            // Camera positioning
             Camera camera = MainRenderer.Camera;
-            Vector3d playerPosition = Player.Position.GetInterpolatedValue(PartialTick);
+            camera.Position = Player.Position.GetInterpolatedValue(PartialTick);
+            camera.Position.Y += Player.EyeLevel;
             float yaw = (float)Player.Yaw;
             float pitch = (float)Player.Pitch;
-
-            playerPosition.Y += Player.EyeLevel;
-            if (Settings.ViewBobbing)
-            {
-                if (Settings.ThirdPerson)
-                    playerPosition.Y -= Player.Velocity.GetInterpolatedValue(PartialTick).Y;
-                pitch += (float)Player.FallAmount.GetInterpolatedValue(PartialTick) * 2.5f;
-            }
-
-            camera.Position = playerPosition;
             camera.Rotation = (yaw, pitch);
 
+            // Selection raycast
             if (World is not null)
             {
                 Profiler.Push("player-raycast");
@@ -223,6 +242,15 @@ public class Game : GameWindow
                 Profiler.Pop();
             }
 
+            // Fall tilt
+            if (Settings.ViewBobbing)
+            {
+                if (Settings.ThirdPerson)
+                    camera.Position.Y -= Player.Velocity.GetInterpolatedValue(PartialTick).Y * 0.25;
+                pitch += (float)Player.FallAmount.GetInterpolatedValue(PartialTick) * 2.5f;
+            }
+
+            // View bobbing / Third person
             if (Settings.ThirdPerson)
             {
                 camera.Position += camera.Front * -4.0f;
@@ -231,7 +259,7 @@ public class Game : GameWindow
             {
                 double renderWalk = Player.RenderWalk.GetInterpolatedValue(PartialTick);
                 camera.Position.Y += Math.Abs(renderWalk) * 0.1;
-                camera.Position += (Vector3d)camera.Right * renderWalk * 0.05;
+                camera.Position += (Vector3d)camera.Right * renderWalk * 0.025;
             }
         }
 
@@ -311,16 +339,7 @@ public class Game : GameWindow
             CurrentScreen.Draw();
             Profiler.Pop();
         }
-        
-        fpsTimer += Delta;
-        fpsCounter++;
-        if (fpsTimer >= 1.0)
-        {
-            fpsTimer %= 1.0;
-            Fps = fpsCounter;
-            fpsCounter = 0;
-        }
-        
+
         Profiler.Pop();
         Profiler.Pop();
         
@@ -329,18 +348,30 @@ public class Game : GameWindow
 
         SwapBuffers();
         
+        // Tick FPS
+        fpsTimer += Delta;
+        fpsCounter++;
+        if (fpsTimer >= 1.0)
+        {
+            fpsTimer %= 1.0;
+            Fps = fpsCounter;
+            fpsCounter = 0;
+            ChunkUpdates = CurrentChunkUpdates;
+            CurrentChunkUpdates = 0;
+        }
+
+        // Clear input
         keysJustPressed.Clear();
         charactersJustTyped.Clear();
         mouseButtonsJustPressed.Clear();
         MouseScroll = Vector2.Zero;
         MouseDelta = Vector2.Zero;
 
-        VSync = Settings.LimitFps.Value switch
-        {
-            0 => false,
-            1 => true,
-            _ => CurrentScreen is not null
-        } ? VSyncMode.Adaptive : VSyncMode.Off;
+        // Apply settings
+        VSync = (VSyncMode)Settings.VSync.Value;
+        UpdateFrequency = Settings.FpsLimit;
+        MainRenderer.Textures.MipmapsEnabled = Settings.Mipmaps;
+        MainRenderer.Camera.FovDegrees = Settings.FieldOfView;
     }
 
     protected override void OnResize(ResizeEventArgs e)
@@ -366,10 +397,11 @@ public class Game : GameWindow
     {
         ExitWorld();
 
-        World = new SingleplayerWorld(this, saveHandler ?? EmptySaveHandler.Instance, worldInfo);
+        World = new SingleplayerWorld(this, saveHandler, worldInfo);
         MainRenderer.WorldRenderer.RefreshRenderers();
         PlayerController = new ClientPlayerController(this);
         Player = new Player(World, PlayerController);
+        Player.Position.JumpTo(new(0.0, 16.0, 0.0));
 
         CompoundItem? playerData = saveHandler?.LoadData("player");
         if (playerData is not null)

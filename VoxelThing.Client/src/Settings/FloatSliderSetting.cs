@@ -32,7 +32,7 @@ public class FloatSliderSetting<T>(string category, string name, T defaultValue,
         T value = T.CreateTruncating(slider.Value);
         value = (value + Minimum) * Range;
         if (Multiple > T.Zero)
-            value = T.Round(value * Multiple) / Multiple;
+            value = T.Round(value / Multiple) * Multiple;
         Value = value;
         
         slider.Text = DisplayValue;

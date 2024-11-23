@@ -7,7 +7,7 @@ namespace VoxelThing.Game.Worlds.Chunks.Storage;
 public abstract class NumericBlockArray<T> : BlockArray
     where T : IBinaryInteger<T>
 {
-    protected Array3D<T> Data;
+    protected readonly Array3D<T> Data;
 
     protected override CompoundItem SerializedData => new() 
     {

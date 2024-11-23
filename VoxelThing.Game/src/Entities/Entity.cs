@@ -7,7 +7,7 @@ namespace VoxelThing.Game.Entities;
 
 public class Entity(World world) : IStructureItemSerializable
 {
-    public const double Gravity = 0.1;
+    public const double Gravity = 0.08;
     public const double TerminalVelocity = 4.0;
 
     public readonly World World = world;
@@ -20,7 +20,7 @@ public class Entity(World world) : IStructureItemSerializable
 
     public readonly InterpolatedVector3d Position = new();
     public readonly InterpolatedVector3d Velocity = new();
-    public readonly Interpolated<double> Yaw = new(), Pitch = new();
+    public readonly InterpolatedDouble Yaw = new(wrap: 360.0), Pitch = new(wrap: 360.0);
 
     public Vector3i BlockPosition => new(
         (int)Math.Floor(Position.Value.X),
@@ -30,10 +30,11 @@ public class Entity(World world) : IStructureItemSerializable
 
     public virtual Vector2 SpriteSize => new(2.0f, 2.0f);
     public virtual int SpriteFrame => 0;
-    public virtual double EyeLevel => Height - 0.3;
+    public virtual double EyeLevel => Height - 0.2;
 
     public readonly InterpolatedBool OnGround = new();
-    public bool NoClip, HasGravity;
+    public bool NoClip = false;
+    public bool HasGravity = true;
 
     public void Tick()
     {
@@ -63,30 +64,31 @@ public class Entity(World world) : IStructureItemSerializable
 
     protected void UpdateCollision()
     {
-        if (!NoClip)
+        if (NoClip)
         {
-            Aabb collisionBox = CollisionBox;
-            List<Aabb> intersectingBoxes = World.GetSurroundingCollision(collisionBox.ExpandToPoint(Velocity.Value));
-            
-            double oldVelocityY = Velocity.Value.Y;
-
-            foreach (Aabb box in intersectingBoxes)
-                Velocity.Value.Y = box.CalculateYOffset(box, Velocity.Value.Y);
-            collisionBox.Offset(0.0, Velocity.Value.Y, 0.0);
-
-            foreach (Aabb box in intersectingBoxes)
-                Velocity.Value.X = box.CalculateXOffset(box, Velocity.Value.X);
-            collisionBox.Offset(Velocity.Value.X, 0.0, 0.0);
-
-            foreach (Aabb box in intersectingBoxes)
-                Velocity.Value.Z = box.CalculateZOffset(box, Velocity.Value.Z);
-            collisionBox.Offset(0.0, 0.0, Velocity.Value.Z);
-
-            OnGround.Value = oldVelocityY < 0.0 && oldVelocityY < Velocity.Value.Y;
-        }
-        else
             OnGround.Value = false;
-        
+            Position.Value += Velocity.Value;
+            return;
+        }
+
+        Aabb collisionBox = CollisionBox;
+        List<Aabb> intersectingBoxes = World.GetSurroundingCollision(collisionBox.ExpandToPoint(Velocity.Value));
+
+        double oldVelocityY = Velocity.Value.Y;
+
+        foreach (Aabb box in intersectingBoxes)
+            Velocity.Value.Y = box.CalculateYOffset(collisionBox, Velocity.Value.Y);
+        collisionBox = collisionBox.Offset(0.0, Velocity.Value.Y, 0.0);
+
+        foreach (Aabb box in intersectingBoxes)
+            Velocity.Value.X = box.CalculateXOffset(collisionBox, Velocity.Value.X);
+        collisionBox = collisionBox.Offset(Velocity.Value.X, 0.0, 0.0);
+
+        foreach (Aabb box in intersectingBoxes)
+            Velocity.Value.Z = box.CalculateZOffset(collisionBox, Velocity.Value.Z);
+        collisionBox = collisionBox.Offset(0.0, 0.0, Velocity.Value.Z);
+
+        OnGround.Value = oldVelocityY < 0.0 && oldVelocityY < Velocity.Value.Y;
         Position.Value += Velocity.Value;
     }
 

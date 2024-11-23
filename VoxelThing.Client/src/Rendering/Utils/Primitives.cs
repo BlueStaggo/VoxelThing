@@ -110,7 +110,7 @@ public class Vector3Primitives : Primitives<FloatBindings>
     internal Vector3Primitives() { }
 
     protected override FloatBindings NewBindings()
-        => new(VertexType.Vector3);
+        => new(new(VertexType.Vector3));
 
     protected override void AddPosition(FloatBindings bindings, float x, float y, float z)
         => bindings.Put(x).Put(y).Put(z);
@@ -125,7 +125,7 @@ public class WorldPrimitives : Primitives<MixedBindings>
     internal WorldPrimitives() { }
 
     protected override MixedBindings NewBindings()
-        => new(VertexLayout.World);
+        => new(VertexLayout.Block);
 
     protected override void AddPosition(MixedBindings bindings, float x, float y, float z)
         => bindings.Put(x).Put(y).Put(z);
@@ -142,7 +142,7 @@ public class WorldFloatPrimitives : Primitives<FloatBindings>
     internal WorldFloatPrimitives() { }
 
     protected override FloatBindings NewBindings()
-        => new(VertexLayout.WorldFloat);
+        => new(VertexLayout.World);
 
     protected override void AddPosition(FloatBindings bindings, float x, float y, float z)
         => bindings.Put(x).Put(y).Put(z);

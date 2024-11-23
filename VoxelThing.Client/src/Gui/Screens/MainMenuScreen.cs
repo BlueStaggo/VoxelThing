@@ -1,6 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Text;
-using OpenTK.Graphics.OpenGL;
 using OpenTK.Windowing.Common;
 using VoxelThing.Client.Gui.Controls;
 using VoxelThing.Client.Rendering;

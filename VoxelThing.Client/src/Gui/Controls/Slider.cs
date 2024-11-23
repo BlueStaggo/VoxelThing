@@ -24,7 +24,7 @@ public class Slider : FocusableControl
         {
             float scaledX = ScaledPosition.X + KnobWidth / 2.0f;
             float scaledWidth = ScaledSize.X - KnobWidth;
-            Value = float.Clamp((args.Position.X - scaledX) / scaledWidth, 0.0f, 1.0f);
+            Value = Math.Clamp((args.Position.X - scaledX) / scaledWidth, 0.0f, 1.0f);
         };
     }
 

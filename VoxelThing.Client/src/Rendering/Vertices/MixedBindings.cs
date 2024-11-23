@@ -1,4 +1,5 @@
 using System.Text;
+using OpenTK.Graphics.OpenGL;
 
 namespace VoxelThing.Client.Rendering.Vertices;
 
@@ -10,9 +11,8 @@ public class MixedBindings : Bindings
     private BinaryWriter binaryWriter;
     private int dataSize;
 
-    public MixedBindings(params VertexType[] types) : this(new VertexLayout(types)) { }
-
-    public MixedBindings(VertexLayout layout) : base(layout)
+    public MixedBindings(VertexLayout layout, PrimitiveType primitiveType = PrimitiveType.Triangles)
+        : base(layout, primitiveType)
     {
         binaryWriter = new(dataStream, Encoding.UTF8, true);
     }

@@ -2,46 +2,74 @@ using OpenTK.Graphics.OpenGL;
 
 namespace VoxelThing.Client.Rendering.Shaders;
 
+[Flags]
+public enum ShaderTypes
+{
+	Fragment = 1,
+	Vertex = 2,
+	Geometry = 4,
+	TesselationEvaluation = 8,
+	TesselationControl = 16,
+	Compute = 32
+}
+
 public class Shader : IDisposable
 {
+	private static readonly string[] ShaderFileExtensions =
+	[
+		".fsh",
+		".vsh",
+		".gsh",
+		".tesh",
+		".tcsh",
+		".csh"
+	];
+
+	private static readonly ShaderType[] ShaderTypeFlagToGl =
+	[
+		ShaderType.FragmentShader,
+		ShaderType.VertexShader,
+		ShaderType.GeometryShader,
+		ShaderType.TessEvaluationShader,
+		ShaderType.TessControlShader,
+		ShaderType.ComputeShader
+	];
+	
     private static int shaderInUse;
 
     protected readonly int Handle;
     private bool disposed;
 
-    protected Shader(string path)
+    protected Shader(string path, ShaderTypes types = ShaderTypes.Fragment | ShaderTypes.Vertex)
     {
-		string vertexPath = path + ".vsh";
-		string fragmentPath = path + ".fsh";
-		string vertexSource = ReadShaderSource(vertexPath);
-		string fragmentSource = ReadShaderSource(fragmentPath);
+	    // Load shaders
+	    List<int> shaders = [];
+	    for (int i = 0; i < 6; i++)
+	    {
+		    if (((int)types & (1 << i)) == 0)
+			    continue;
 
-        // Load vertex shader
-        int vertexShader = GL.CreateShader(ShaderType.VertexShader);
-        GL.ShaderSource(vertexShader, vertexSource);
-		GL.CompileShader(vertexShader);
-        GL.GetShader(vertexShader, ShaderParameter.CompileStatus, out int compileStatus);
-		if (compileStatus == 0) 
-        {
-			string log = GL.GetShaderInfoLog(vertexShader);
-			throw new FormatException("Failed to compile shader \"" + vertexPath + "\"!\n" + log);
-		}
+		    string shaderPath = path + ShaderFileExtensions[i];
+		    string shaderSource = ReadShaderSource(shaderPath);
 
-		// Load fragment shader
-		int fragmentShader = GL.CreateShader(ShaderType.FragmentShader);
-		GL.ShaderSource(fragmentShader, fragmentSource);
-		GL.CompileShader(fragmentShader);
-        GL.GetShader(fragmentShader, ShaderParameter.CompileStatus, out compileStatus);
-		if (compileStatus == 0)
-        {
-			string log = GL.GetShaderInfoLog(fragmentShader);
-			throw new FormatException("Failed to compile fragment shader \"" + fragmentPath + "\"!\n" + log);
-		}
+		    int shaderHandle = GL.CreateShader(ShaderTypeFlagToGl[i]);
+		    GL.ShaderSource(shaderHandle, shaderSource);
+		    GL.CompileShader(shaderHandle);
+		    GL.GetShader(shaderHandle, ShaderParameter.CompileStatus, out int compileStatus);
 
-		// Load program
+		    if (compileStatus == 0)
+		    {
+			    string log = GL.GetShaderInfoLog(shaderHandle);
+			    throw new FormatException("Failed to compile shader \"" + shaderPath + "\"!\n" + log);
+		    }
+		    
+		    shaders.Add(shaderHandle);
+	    }
+	    
+	    // Load program
 		Handle = GL.CreateProgram();
-		GL.AttachShader(Handle, vertexShader);
-		GL.AttachShader(Handle, fragmentShader);
+		foreach (int shader in shaders)
+			GL.AttachShader(Handle, shader);
 		GL.LinkProgram(Handle);
         GL.GetProgram(Handle, GetProgramParameterName.LinkStatus, out int linkStatus);
 		if (linkStatus == 0)
@@ -51,8 +79,8 @@ public class Shader : IDisposable
 		}
 
 		// Delete shaders
-		GL.DeleteShader(vertexShader);
-		GL.DeleteShader(fragmentShader);
+		foreach (int shader in shaders)
+			GL.DeleteShader(shader);
     }
 
     ~Shader() => Dispose();

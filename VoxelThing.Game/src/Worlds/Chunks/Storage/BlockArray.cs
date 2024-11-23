@@ -13,7 +13,7 @@ public abstract class BlockArray : IStructureItemSerializable
         () => new ShortBlockArray(),
     ];
 
-    private static readonly Dictionary<RuntimeTypeHandle, int> RegisteredTypeIds = [];
+    private static readonly Dictionary<Type, int> RegisteredTypeIds = [];
 
     protected internal List<Block?> Palette = [];
     
@@ -26,11 +26,11 @@ public abstract class BlockArray : IStructureItemSerializable
     static BlockArray()
     {
         int id = 0;
-        RegisteredTypeIds[typeof(EmptyBlockArray).TypeHandle] = id++;
-        RegisteredTypeIds[typeof(NibbleBlockArray).TypeHandle] = id++;
-        RegisteredTypeIds[typeof(ByteBlockArray).TypeHandle] = id++;
-        RegisteredTypeIds[typeof(TriNibbleBlockArray).TypeHandle] = id++;
-        RegisteredTypeIds[typeof(ShortBlockArray).TypeHandle] = id++;
+        RegisteredTypeIds[typeof(EmptyBlockArray)] = id++;
+        RegisteredTypeIds[typeof(NibbleBlockArray)] = id++;
+        RegisteredTypeIds[typeof(ByteBlockArray)] = id++;
+        RegisteredTypeIds[typeof(TriNibbleBlockArray)] = id++;
+        RegisteredTypeIds[typeof(ShortBlockArray)] = id++;
     }
 
     public virtual BlockArray Expand()
@@ -90,8 +90,9 @@ public abstract class BlockArray : IStructureItemSerializable
     public abstract void Deserialize(CompoundItem compoundItem);
 
     public StructureItem Serialize()
-    => SerializedData
-        .Put("Palette", Palette.Select(b => b?.Id.FullName ?? Block.AirId.FullName));
+        => SerializedData
+            .Put("Type", (byte) RegisteredTypeIds[GetType()])
+            .Put("Palette", Palette.Select(b => b?.Id.FullName ?? Block.AirId.FullName).ToList());
 
     public static BlockArray Deserialize(StructureItem? structureItem)
     {

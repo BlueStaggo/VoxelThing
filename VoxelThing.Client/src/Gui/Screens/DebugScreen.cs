@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Text;
 using VoxelThing.Client.Assets;
-using VoxelThing.Game.Blocks;
 
 namespace VoxelThing.Client.Gui.Screens;
 
@@ -19,8 +18,9 @@ public class DebugScreen(Game game) : Screen(game)
         Debug.Assert(Game.World != null, "Game.World != null");
         string raycastText = Game.SelectionCast.GetDebugText(Game.World);
 
-        string[] lines = {
+        string[] lines = [
             "FPS", Game.Fps + " (" + (int)(Game.Delta * 1000.0D) + "ms)",
+            "Chunk Updates", Game.ChunkUpdates.ToString(),
             "Memory", totalMb + " MB",
             "GUI Scale", Convert.ToString((screen.Scale <= 0.0f ? "auto" : screen.Scale))!,
             "Position", Game.Player is not null
@@ -28,9 +28,13 @@ public class DebugScreen(Game game) : Screen(game)
                   + ", " + FormatDouble(Game.Player.Position.Value.Y)
                   + ", " + FormatDouble(Game.Player.Position.Value.Z)
                 : "N/A",
+            "Rotation", Game.Player is not null
+                ? FormatDouble(Game.Player.Yaw.Value)
+                  + ", " + FormatDouble(Game.Player.Pitch.Value)
+                : "N/A",
             "Looking At", raycastText,
             "Scroll", FormatDouble(Game.MouseScroll.X) + ", " + FormatDouble(Game.MouseScroll.Y)
-        };
+        ];
 
         var debugBuilder = new StringBuilder();
 

@@ -3,7 +3,6 @@ using OpenTK.Mathematics;
 using VoxelThing.Client.Rendering.Shaders;
 using VoxelThing.Client.Rendering.Utils;
 using VoxelThing.Client.Rendering.Vertices;
-using VoxelThing.Game;
 using VoxelThing.Game.Maths;
 using VoxelThing.Game.Utils;
 using VoxelThing.Game.Worlds;
@@ -35,7 +34,7 @@ public class WorldRenderer(MainRenderer mainRenderer) : IDisposable
 
 	private int horizontalRenderRange;
 	private int verticalRenderRange;
-
+    
 #region Chunk Rendering
     private int WrapHorizontal(int x) => MathUtil.FloorMod(x + HorizontalDistance, horizontalRenderRange);
     
@@ -119,25 +118,28 @@ public class WorldRenderer(MainRenderer mainRenderer) : IDisposable
         Profiler.Pop();
     }
 
-    public void Draw()
+    public void Draw(GlState? parentState)
     {
-        if (HorizontalDistance != mainRenderer.Game.Settings.RenderDistanceHorizontal.Value
-            || VerticalDistance != mainRenderer.Game.Settings.RenderDistanceVertical.Value)
+        Game game = mainRenderer.Game;
+        
+        if (HorizontalDistance != game.Settings.RenderDistanceHorizontal.Value
+            || VerticalDistance != game.Settings.RenderDistanceVertical.Value)
         {
-            HorizontalDistance = mainRenderer.Game.Settings.RenderDistanceHorizontal;
-            VerticalDistance = mainRenderer.Game.Settings.RenderDistanceVertical;
+            HorizontalDistance = game.Settings.RenderDistanceHorizontal;
+            VerticalDistance = game.Settings.RenderDistanceVertical;
             RefreshRenderers();
         }
 
         sortedCulledChunkRenderers = sortedChunkRenderers;
 
-        Matrix4 viewProjection = mainRenderer.Camera.ViewProjection;
-        Vector3d cameraPosition = mainRenderer.Camera.Position;
-
-        const int maxUpdates = 1;
-        int updates = 0;
-        double currentTime = Game.TimeElapsed;
-
+        int targetFps = 60;
+        if (game.Settings.FpsLimit > 0)
+            targetFps = game.Settings.FpsLimit;
+        targetFps = Math.Max(targetFps, 60);
+        
+        double targetRenderTime = game.UpdateStartTime;
+        targetRenderTime += Math.Max((1.0 / targetFps) - (Game.TimeElapsed - targetRenderTime), 0.0);
+        
         Profiler.Push("render");
         foreach (ChunkRenderer chunkRenderer in sortedChunkRenderers)
         {
@@ -145,20 +147,38 @@ public class WorldRenderer(MainRenderer mainRenderer) : IDisposable
                 continue;
 
             chunkRenderer.Render(Profiler);
-
-            if (++updates >= maxUpdates)
+            game.CurrentChunkUpdates++;
+            
+            if (Game.TimeElapsed > targetRenderTime)
                 break;
         }
 
         Profiler.PopPush("draw");
+        
+        Matrix4 viewProjection = mainRenderer.Camera.ViewProjection;
+        Vector3d cameraPosition = mainRenderer.Camera.Position;
+
         var worldShader = mainRenderer.Shaders.Get<WorldShader>();
         worldShader.Use();
-
-        for (int pass = 0; pass < 2; pass++)
+        
+        double currentTime = Game.TimeElapsed;
+        for (int pass = 0; pass < 3; pass++)
         {
             bool translucent = pass > 0;
-            GlState? state = translucent ? new GlState() : null;
+            using GlState? state = translucent ? new GlState(parentState) : null;
             state?.Enable(EnableCap.Blend);
+
+            switch (pass)
+            {
+                case 1:
+                    state?.ColorMask(false, false, false, false);
+                    break;
+                
+                case 2:
+                    state?.DepthMask(false);
+                    state?.DepthFunc(DepthFunction.Equal);
+                    break;
+            }
 
             foreach (ChunkRenderer chunkRenderer in sortedChunkRenderers)
             {
@@ -182,8 +202,9 @@ public class WorldRenderer(MainRenderer mainRenderer) : IDisposable
             }
         }
         
-        worldShader.Fade.Set(0.0f);
+        worldShader.Mvp.Set(mainRenderer.Camera.ViewProjection);
         worldShader.CameraPosition.Set(Vector3.Zero);
+        worldShader.Fade.Set(0.0f);
         Shader.Stop();
         Profiler.Pop();
     }
@@ -201,7 +222,7 @@ public class WorldRenderer(MainRenderer mainRenderer) : IDisposable
     
     public void MarkUpdateAt(int x, int y, int z)
     {
-        MarkChunkUpdateAt(x >> Chunk.SizePow2, y >> Chunk.SizePow2, z >> Chunk.SizePow2);
+        MarkChunkUpdateAt(x >> Chunk.LengthPow2, y >> Chunk.LengthPow2, z >> Chunk.LengthPow2);
     }
     
     public void MarkNeighborChunkUpdateAt(int x, int y, int z)

@@ -20,5 +20,6 @@ float getFogFromPos(vec3 pos) {
 }
 
 vec4 blendFogWithSky(vec4 color, float fog) {
-    return mix(color, texture(fogInfo.skyTex, gl_FragCoord.xy / vec2(fogInfo.skyWidth, fogInfo.skyHeight)), fog);
+    vec4 fogColor = texture(fogInfo.skyTex, gl_FragCoord.xy / vec2(fogInfo.skyWidth, fogInfo.skyHeight));
+    return mix(color, fogColor, fog);
 }

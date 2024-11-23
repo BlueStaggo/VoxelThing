@@ -9,7 +9,7 @@ public class Draw2D : IDisposable
     private readonly MainRenderer renderer;
 
     private readonly FloatBindings screenBindings = new(VertexLayout.Screen);
-    private readonly FloatBindings quadBindings = new(VertexType.Vector2);
+    private readonly FloatBindings quadBindings = new(new(VertexType.Vector2));
 
     private readonly QuadShader quadShader;
     private readonly ScreenShader screenShader;

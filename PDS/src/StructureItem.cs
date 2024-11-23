@@ -1,4 +1,5 @@
-﻿using System.IO.Compression;
+﻿using System.Collections;
+using System.IO.Compression;
 using System.Reflection;
 
 namespace PDS;
@@ -103,8 +104,8 @@ public abstract class StructureItem
         [typeof(NumericItem<ulong>)] = value => value.ULongValue,
         [typeof(ArrayItem<ulong>)] = value => value.ULongArrayValue,
         [typeof(BoolItem)] = value => value.BoolValue,
-        [typeof(NumericItem<float>)] = value => value.ByteValue,
-        [typeof(NumericItem<double>)] = value => value.ByteValue,
+        [typeof(NumericItem<float>)] = value => value.FloatValue,
+        [typeof(NumericItem<double>)] = value => value.DoubleValue,
         [typeof(StringItem)] = value => value.ToString(),
     };
 #endregion
@@ -183,10 +184,11 @@ public abstract class StructureItem
 
         switch (obj)
         {
-            case Dictionary<string, object> dictionary:
-                return new CompoundItem(dictionary.Select(kv => KeyValuePair.Create(kv.Key, Serialize(kv.Value))).ToDictionary());
-            case List<object> list:
-                return new ListItem(list.Select(Serialize).ToList());
+            case IDictionary dictionary:
+                return new CompoundItem(dictionary.OfType<KeyValuePair<string, object>>()
+                    .Select(kv => KeyValuePair.Create(kv.Key, Serialize(kv.Value))).ToDictionary());
+            case IList list:
+                return new ListItem(list.OfType<object>().Select(Serialize).ToList());
             case IStructureItemSerializable serializable:
                 return serializable.Serialize();
         }
@@ -245,24 +247,19 @@ public abstract class StructureItem
         Write(writer);
     }
 
-    public static StructureItem ReadFromPath(string path,
-        CompressionLevel compression = CompressionLevel.NoCompression)
+    public static StructureItem ReadFromPath(string path, bool compressed = false)
     {
-        using FileStream fileStream = new(path, FileMode.Open, FileAccess.Read);
+        FileStream fileStream = File.OpenRead(path);
         Stream stream = fileStream;
 
-        if (compression != CompressionLevel.NoCompression)
-        {
-            using GZipStream gZipStream = new(fileStream, compression);
-            stream = gZipStream;
-        }
+        if (compressed)
+            stream = new GZipStream(fileStream, CompressionMode.Decompress);
 
         using BinaryReader binaryReader = new(stream);
         return ReadItem(binaryReader);
     }
 
-    public void WriteToPath(string path,
-        CompressionLevel compression = CompressionLevel.NoCompression)
+    public void WriteToPath(string path, bool compress = false)
     {
         DirectoryInfo? parentDirectory = Directory.GetParent(path);
         if (parentDirectory is null)
@@ -270,14 +267,11 @@ public abstract class StructureItem
         
         Directory.CreateDirectory(parentDirectory.FullName);
         
-        using FileStream fileStream = new(path, FileMode.Create, FileAccess.Write);
+        FileStream fileStream = File.OpenWrite(path);
         Stream stream = fileStream;
 
-        if (compression != CompressionLevel.NoCompression)
-        {
-            using GZipStream gZipStream = new(fileStream, compression);
-            stream = gZipStream;
-        }
+        if (compress)
+            stream = new GZipStream(fileStream, CompressionMode.Compress);
 
         using BinaryWriter binaryWriter = new(stream);
         WriteItem(binaryWriter);

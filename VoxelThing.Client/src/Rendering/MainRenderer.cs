@@ -6,10 +6,11 @@ using VoxelThing.Client.Rendering.Drawing;
 using VoxelThing.Client.Rendering.Shaders;
 using VoxelThing.Client.Rendering.Shaders.Modules;
 using VoxelThing.Client.Rendering.Textures;
-using VoxelThing.Client.Rendering.Utils;
 using VoxelThing.Client.Rendering.Worlds;
+using VoxelThing.Game.Blocks;
 using VoxelThing.Game.Maths;
 using VoxelThing.Game.Utils;
+using VoxelThing.Game.Worlds;
 using VoxelThing.Game.Worlds.Chunks;
 
 namespace VoxelThing.Client.Rendering;
@@ -32,8 +33,9 @@ public class MainRenderer : IDisposable
     public readonly Draw2D Draw2D;
     public readonly Draw3D Draw3D;
 
-    private Color4 fogColor = new(0.6f, 0.8f, 1.0f, 1.0f);
-    private Color4 skyColor = new(0.2f, 0.6f, 1.0f, 1.0f);
+    private Vector4 horizonColor = new(0.7f, 0.9f, 1.0f, 1.0f);
+    private Vector4 skyColor = new(0.1f, 0.4f, 1.0f, 1.0f);
+    private Vector4 fogColor = new(1.0f, 1.0f, 1.0f, 1.0f);
     private readonly Framebuffer skyFramebuffer;
 
     private Vector3d previousUpdateLocation;
@@ -73,7 +75,7 @@ public class MainRenderer : IDisposable
             + WorldRenderer.VerticalDistance * WorldRenderer.VerticalDistance
         ) * 32.0f;
         
-        GL.ClearColor(skyColor);
+        GL.ClearColor((Color4)skyColor);
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
         if (Game.World is not null)
@@ -87,6 +89,9 @@ public class MainRenderer : IDisposable
 
     private void Render3D()
     {
+        if (Game.World is null)
+            return;
+        
         Draw3D.Setup();
 
         Profiler.Push("setup");
@@ -112,7 +117,24 @@ public class MainRenderer : IDisposable
         state.CullFace(CullFaceMode.Back);
         Textures.Get("blocks.png", TextureFlags.Mipmapped).Use();
         UseSkyTexture(1);
-        WorldRenderer.Draw();
+        WorldRenderer.Draw(state);
+        
+        if (!Game.Settings.HideHud && Game.SelectionCast.Hit)
+        {
+            BlockRaycastResult cast = Game.SelectionCast;
+            Block? block = Game.World.GetBlock(cast.HitX, cast.HitY, cast.HitZ);
+            if (block is not null)
+            {
+                using GlState boxState = new(state);
+                boxState.DepthMask(false);
+                boxState.DepthFunc(DepthFunction.Lequal);
+                boxState.Enable(EnableCap.Blend);
+                Draw3D.DrawBoxLines(
+                    block.GetCollisionBox(Game.World, cast.HitX, cast.HitY, cast.HitZ),
+                    a: 0.4f, thickness: 4.0f                    
+                );
+            }
+        }
         
         state.Disable(EnableCap.CullFace);
 
@@ -126,7 +148,7 @@ public class MainRenderer : IDisposable
         }
 
         Profiler.PopPush("clouds");
-        Textures.Get("environment/clouds.png", TextureFlags.Mipmapped).Use();
+        Textures.Get("environment/clouds.png").Use();
         WorldRenderer.DrawClouds(state);
         Shader.Stop();
         
@@ -161,12 +183,26 @@ public class MainRenderer : IDisposable
 
     private void SetupSkyShader()
     {
+        horizonColor.X = Game.Settings.HorizonR;
+        horizonColor.Y = Game.Settings.HorizonG;
+        horizonColor.Z = Game.Settings.HorizonB;
+        skyColor.X = Game.Settings.SkyR;
+        skyColor.Y = Game.Settings.SkyG;
+        skyColor.Z = Game.Settings.SkyB;
+        fogColor.X = Game.Settings.FogR;
+        fogColor.Y = Game.Settings.FogG;
+        fogColor.Z = Game.Settings.FogB;
+        
+        float fogFactor = Game.Settings.RenderDistanceHorizontal * Game.Settings.RenderDistanceHorizontal
+                               + Game.Settings.RenderDistanceVertical * Game.Settings.RenderDistanceVertical;
+        fogFactor = Math.Clamp(1.0f - fogFactor / 64.0f, 0.0f, 1.0f);
+        
         var skyShader = Shaders.Get<SkyShader>();
         skyShader.Use();
         skyShader.View.Set(Camera.View);
         skyShader.Projection.Set(Camera.Projection);
-        skyShader.FogColor.Set(fogColor);
-        skyShader.SkyColor.Set(skyColor);
+        skyShader.FogColor.Set(Vector4.Lerp(horizonColor, fogColor, fogFactor));
+        skyShader.SkyColor.Set(Vector4.Lerp(skyColor, fogColor, fogFactor));
     }
 
     private void SetupCloudShader()
@@ -191,7 +227,7 @@ public class MainRenderer : IDisposable
         GL.BindTexture(TextureTarget.Texture2D, skyFramebuffer.Texture);
         GL.ActiveTexture(TextureUnit.Texture0);
     }
-
+    
     public void Dispose()
     {
         Textures.Dispose();

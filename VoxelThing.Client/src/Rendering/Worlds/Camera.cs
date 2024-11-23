@@ -33,7 +33,7 @@ public class Camera
         get => pitch;
         set
         {
-            if (float.Abs(float.Abs(value) - 90.0f) < 0.1f)
+            if (Math.Abs(Math.Abs(value) - 90.0f) < 0.1f)
                 value = 90.1f * MathF.Sign(value);
             pitch = value % 360.0f;
             UpdateVectors();
@@ -47,7 +47,7 @@ public class Camera
         {
             yaw = value.Yaw % 360.0f;
             pitch = value.Pitch % 360.0f;
-            if (float.Abs(float.Abs(pitch) - 90.0f) < 0.1f)
+            if (Math.Abs(Math.Abs(pitch) - 90.0f) < 0.1f)
                 pitch = 90.1f * MathF.Sign(pitch);
             UpdateVectors();
         }
@@ -102,6 +102,6 @@ public class Camera
         view = Matrix4.LookAt(Vector3.Zero, front, up);
         Matrix4.Mult(view, projection, out viewProjection);
 
-        Frustum = new(this);
+        Frustum = new(ViewProjection);
     }
 }

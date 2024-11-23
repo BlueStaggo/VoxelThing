@@ -4,7 +4,7 @@ namespace VoxelThing.Game.Worlds;
 
 public readonly struct BlockRaycastResult
 {
-    public static readonly BlockRaycastResult NoHit = new(false, 0, 0, 0, (Direction)0);
+    public static readonly BlockRaycastResult NoHit = new(false, 0, 0, 0, 0);
 
     public readonly bool Hit;
     public readonly int HitX;

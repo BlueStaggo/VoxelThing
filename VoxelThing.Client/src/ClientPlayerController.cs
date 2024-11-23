@@ -29,7 +29,7 @@ public class ClientPlayerController(Game game) : IPlayerController
     public double MovePitch
         => game.CurrentScreen is not null ? 0.0
             : (game.CursorState == CursorState.Grabbed
-                  ? game.MouseDelta.Y * game.Settings.MouseSensitivity : 0.0f)
+                  ? -game.MouseDelta.Y * game.Settings.MouseSensitivity : 0.0f)
               + (game.IsKeyDown(Keys.Up) ? 1.0
                   : game.IsKeyDown(Keys.Down) ? -1.0
                   : 0.0) * game.Settings.MouseSensitivity * 360.0 * game.Delta;

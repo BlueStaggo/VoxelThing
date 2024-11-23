@@ -29,8 +29,8 @@ public class SaveSelectScreen : Screen
             AlignPosition = (0.5f, 1.0f),
             HasBackground = true
         });
-        // newWorldButton.OnClick += (_, _) => Game.CurrentScreen = new CreateWorldScreen(Game);
-        newWorldButton.OnClick += (_, _) => Game.StartWorld(EmptySaveHandler.Instance);
+        newWorldButton.OnClick += (_, _) => Game.CurrentScreen = new CreateWorldScreen(Game);
+        // newWorldButton.OnClick += (_, _) => Game.StartWorld(EmptySaveHandler.Instance);
 
         worldContainer = AddControl(new ScrollContainer(this)
         {

@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using OpenTK.Mathematics;
 using PDS;
 using VoxelThing.Game.Blocks;
@@ -36,10 +35,10 @@ public class World : IBlockAccess
 	public bool ChunkExists(int x, int y, int z) => ChunkStorage.ChunkExists(x, y, z);
 
 	public Chunk? GetChunkAtBlock(int x, int y, int z)
-		=> GetChunkAt(x >> Chunk.SizePow2, y >> Chunk.SizePow2, z >> Chunk.SizePow2);
+		=> GetChunkAt(x >> Chunk.LengthPow2, y >> Chunk.LengthPow2, z >> Chunk.LengthPow2);
 
 	public bool ChunkExistsAtBlock(int x, int y, int z)
-		=> ChunkExists(x >> Chunk.SizePow2, y >> Chunk.SizePow2, z >> Chunk.SizePow2);
+		=> ChunkExists(x >> Chunk.LengthPow2, y >> Chunk.LengthPow2, z >> Chunk.LengthPow2);
 
 	public Block? GetBlock(int x, int y, int z) => GetChunkAtBlock(x, y, z)?
         .GetBlock(x & Chunk.LengthMask, y & Chunk.LengthMask, z & Chunk.LengthMask);
@@ -80,7 +79,9 @@ public class World : IBlockAccess
 					} else if (yy < height - 1) {
 						block = Block.Dirt;
 					} else if (yy < height) {
-						block = Block.Grass;
+						block = height < -2 ? Block.Gravel
+							: height < 1 ? Block.Sand
+							: Block.Grass;
 					} else if (yy < 0) {
 						block = Block.Water;
 					}
@@ -96,12 +97,12 @@ public class World : IBlockAccess
     {
 		List<Aabb> boxes = [];
 
-		int minX = (int)Math.Floor(box.MinX);
-		int minY = (int)Math.Floor(box.MinY);
-		int minZ = (int)Math.Floor(box.MinZ);
-		int maxX = (int)Math.Floor(box.MaxX + 1.0);
-		int maxY = (int)Math.Floor(box.MaxY + 1.0);
-		int maxZ = (int)Math.Floor(box.MaxZ + 1.0);
+		int minX = (int)Math.Floor(box.MinX - 1.0);
+		int minY = (int)Math.Floor(box.MinY - 1.0);
+		int minZ = (int)Math.Floor(box.MinZ - 1.0);
+		int maxX = (int)Math.Floor(box.MaxX + 2.0);
+		int maxY = (int)Math.Floor(box.MaxY + 2.0);
+		int maxZ = (int)Math.Floor(box.MaxZ + 2.0);
 
 		for (int x = minX; x < maxX; x++)
 		for (int y = minY; y < maxY; y++)
@@ -132,20 +133,23 @@ public class World : IBlockAccess
 					return new(x, y, z, collision.GetClosestFace(position, direction));
 			}
 
-			position += direction;
+			position += direction * stepDistance;
 			distance += stepDistance;
 		}
 
 		return BlockRaycastResult.NoHit;
 	}
 
+	public void UnloadSurroundingChunks(int cx, int cy, int cz, int distanceH, int distanceV)
+		=> ChunkStorage.UnloadSurroundingChunks(cx, cy, cz, distanceH, distanceV);
+	
 	public virtual void OnBlockUpdate(int x, int y, int z) { }
 
 	public virtual void OnChunkAdded(int x, int y, int z) { }
 
 	public void Close()
 	{
-		SaveHandler.SaveData("world", (CompoundItem)Info.Serialize());
+		SaveHandler.SaveData("world", (CompoundItem)StructureItem.Serialize(Info));
 		ChunkStorage.UnloadAllChunks();
 	}
 }

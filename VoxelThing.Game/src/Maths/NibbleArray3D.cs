@@ -28,7 +28,7 @@ public class NibbleArray3D : Array3D<byte>
         {
             int i = (x * Height + y) * HalfLength + z / 2;
             byte nibblePair = Data[i];
-            if ((z & 1) == 0) nibblePair >>= 4;
+            if ((z & 1) == 1) nibblePair >>= 4;
             return (byte)(nibblePair & 0xF);
         }
         set

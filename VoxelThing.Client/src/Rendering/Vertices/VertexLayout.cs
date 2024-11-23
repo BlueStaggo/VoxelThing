@@ -4,8 +4,8 @@ namespace VoxelThing.Client.Rendering.Vertices;
 
 public class VertexLayout(params VertexType[] vertexTypes)
 {
-    public static readonly VertexLayout World = new(VertexType.Vector3, VertexType.Color3B, VertexType.Vector2);
-    public static readonly VertexLayout WorldFloat = new(VertexType.Vector3, VertexType.Color3, VertexType.Vector2);
+    public static readonly VertexLayout Block = new(VertexType.Vector3, VertexType.Color3B, VertexType.Vector2);
+    public static readonly VertexLayout World = new(VertexType.Vector3, VertexType.Color3, VertexType.Vector2);
     public static readonly VertexLayout Screen = new(VertexType.Vector2, VertexType.Color3, VertexType.Vector2);
     // TODO: Maybe make use of RGBA
 

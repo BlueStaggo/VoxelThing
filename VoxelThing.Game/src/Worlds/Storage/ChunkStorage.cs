@@ -48,6 +48,25 @@ public class ChunkStorage(World world)
         Chunks.Clear();
     }
 
+    public void UnloadSurroundingChunks(int cx, int cy, int cz, int distanceH, int distanceV)
+    {
+        Vector3i centerLocation = new(cx, cy, cz);
+        
+        List<Vector3i> chunkLocations = Chunks.Keys.ToList();
+        foreach (Vector3i chunkLocation in chunkLocations)
+        {
+            Vector3i chunkDistance = chunkLocation - centerLocation;
+            if (Math.Abs(chunkDistance.X) > distanceH
+                || Math.Abs(chunkDistance.Y) > distanceV
+                || Math.Abs(chunkDistance.Z) > distanceH)
+            {
+                Chunk chunk = Chunks[chunkLocation];
+                chunk.OnUnload();
+                Chunks.Remove(chunkLocation);
+            }
+        }
+    }
+
     public bool ChunkExists(int x, int y, int z)
         => Chunks.TryGetValue(new(x, y, z), out Chunk? chunk) && chunk.X == x && chunk.Y == y && chunk.Z == z;
 }

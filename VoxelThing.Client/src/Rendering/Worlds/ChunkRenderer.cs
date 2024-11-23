@@ -1,8 +1,6 @@
-using System.Diagnostics;
 using OpenTK.Mathematics;
 using VoxelThing.Client.Rendering.Vertices;
 using VoxelThing.Client.Worlds;
-using VoxelThing.Game.Blocks;
 using VoxelThing.Game.Maths;
 using VoxelThing.Game.Utils;
 using VoxelThing.Game.Worlds;
@@ -67,30 +65,33 @@ public class ChunkRenderer : IDisposable
         if (chunk is null || chunk.Empty)
             return;
 
-        opaqueBindings ??= new(VertexLayout.World);
-        translucentBindings ??= new(VertexLayout.World);
+        opaqueBindings ??= new(VertexLayout.Block);
+        translucentBindings ??= new(VertexLayout.Block);
 
         profiler?.Push("load-chunks");
-        ChunkCache chunkCache = new(world, X, Y, Z);
+        WorldCache worldCache = new(world, X, Y, Z);
         
         BlockRendererArguments args = new()
         {
             OpaqueBindings = opaqueBindings,
             TranslucentBindings = translucentBindings,
-            BlockAccess = chunkCache,
-            Chunk = chunk
+            BlockAccess = worldCache
         };
 
         profiler?.PopPush("build-buffers");
         for (int xx = 0; xx < Chunk.Length; xx++)
-        for (int yy = 0; yy < Chunk.Length; yy++)
-        for (int zz = 0; zz < Chunk.Length; zz++)
-            BlockRenderer.Render(args with
+        {
+            args.X = (X << Chunk.LengthPow2) + xx;
+            for (int yy = 0; yy < Chunk.Length; yy++)
             {
-                X = xx,
-                Y = yy,
-                Z = zz,
-            }, profiler);
+                args.Y = (Y << Chunk.LengthPow2) + yy;
+                for (int zz = 0; zz < Chunk.Length; zz++)
+                {
+                    args.Z = (Z << Chunk.LengthPow2) + zz;
+                    BlockRenderer.Render(args);
+                }
+            }
+        }
         
         EmptyOpaque = opaqueBindings.IsEmpty;
         EmptyTranslucent = translucentBindings.IsEmpty;
@@ -126,7 +127,8 @@ public class ChunkRenderer : IDisposable
         translucentBindings.Draw();
     }
 
-    public double GetFadeAmount(double currentTime) => double.Clamp(1.0 - (currentTime - firstAppearance), 0.0, 1.0);
+    public double GetFadeAmount(double currentTime)
+        => 1.0 - Math.Pow(1.0 - Math.Clamp(1.0 - (currentTime - firstAppearance), 0.0, 1.0), 2.0);
 
     public bool IsInCamera(Camera camera) => camera.Frustum.TestAabb(Aabb.Offset(-camera.Position));
 

@@ -1,4 +1,3 @@
-using System.Globalization;
 using PDS;
 using VoxelThing.Client.Gui;
 using VoxelThing.Client.Gui.Controls;
@@ -17,12 +16,8 @@ public interface ISetting
     public void Deserialize(StructureItem control);
     public Control GetControl(Screen screen);
     
-    protected static string ToCamelCase(string value)
-    {
-        value = value.Replace("_", string.Empty);
-        value = value.Replace(" ", string.Empty);
-        return char.ToLowerInvariant(value[0]) + value[1..];
-    }
+    protected static string ToPascalCase(string value)
+        => value.Replace("_", string.Empty).Replace(" ", string.Empty);
 }
 
 public abstract class Setting<T>(string category, string name, T defaultValue) : ISetting
@@ -30,7 +25,7 @@ public abstract class Setting<T>(string category, string name, T defaultValue) :
     public string Category { get; } = category;
     public string Name { get; } = name;
     public string SaveName { get; }
-        = $"{ISetting.ToCamelCase(category)}:{ISetting.ToCamelCase(name)}";
+        = $"{ISetting.ToPascalCase(category)}:{ISetting.ToPascalCase(name)}";
     public string DisplayValue => TextTransformer(Value);
     
     public T Value { get; set; } = defaultValue;

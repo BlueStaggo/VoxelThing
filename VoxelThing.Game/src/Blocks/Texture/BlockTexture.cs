@@ -44,6 +44,6 @@ public readonly record struct GrassTexture(Vector2i Side, Vector2i Top, Vector2i
     {
         Direction.Up => Top,
         Direction.Down => Bottom,
-        _ => blockAccess?.GetBlock(x + face.GetX(), y + face.GetY(), z + face.GetZ()) == Block.Grass ? Top : Side,
+        _ => blockAccess?.GetBlock(x + face.GetX(), y + face.GetY() - 1, z + face.GetZ()) == Block.Grass ? Top : Side,
     };
 }
