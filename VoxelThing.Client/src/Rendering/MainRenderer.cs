@@ -129,6 +129,7 @@ public class MainRenderer : IDisposable
                 boxState.DepthMask(false);
                 boxState.DepthFunc(DepthFunction.Lequal);
                 boxState.Enable(EnableCap.Blend);
+                boxState.Disable(EnableCap.CullFace);
                 Draw3D.DrawBoxLines(
                     block.GetCollisionBox(Game.World, cast.HitX, cast.HitY, cast.HitZ),
                     a: 0.4f, thickness: 4.0f                    
