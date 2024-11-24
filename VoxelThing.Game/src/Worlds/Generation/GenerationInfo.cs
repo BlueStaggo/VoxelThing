@@ -5,7 +5,9 @@ namespace VoxelThing.Game.Worlds.Generation;
 
 public class GenerationInfo
 {
-    private const int LerpMapLength = (Chunk.Length >> 2) + 1;
+	private const int LerpLengthPow2 = 2;
+	private const int LerpLength = 1 << LerpLengthPow2;
+	private const int LerpMapLength = (Chunk.Length >> LerpLengthPow2) + 1;
 
     private const int BaseOctaves = 4;
     private const double BaseScale = 250.0;
@@ -45,7 +47,9 @@ public class GenerationInfo
 
     private readonly float[,] height = new float[Chunk.Length, Chunk.Length];
     private readonly float[,,] caveInfo = new float[LerpMapLength, LerpMapLength, LerpMapLength];
-    private int lastQueryLayer = int.MaxValue;
+    private readonly float[,,] lerpedCaveInfo = new float[Chunk.Length, Chunk.Length, Chunk.Length];
+    private float maxHeight = float.NegativeInfinity;
+    private int caveChunkY = int.MaxValue;
     private bool hasGenerated;
 
     public GenerationInfo(ulong seed, int cx, int cz)
@@ -88,49 +92,44 @@ public class GenerationInfo
 				baseHeight += cliffHeight;
 
 			height[x, z] = baseHeight;
-		}
+			if (baseHeight > maxHeight)
+				maxHeight = baseHeight;
+        }
 	}
 
     public float GetHeight(int x, int z) => height[x, z];
 
     public bool GetCave(int x, int y, int z)
     {
-        if (lastQueryLayer != y >> Chunk.LengthPow2)
-            GenerateCaves(y >> Chunk.LengthPow2);
-        
-		int xx = x / 4;
-		int yy = (y & Chunk.LengthMask) / 4;
-		int zz = z / 4;
+	    if (caveChunkY << Chunk.LengthPow2 > Math.Ceiling(maxHeight / Chunk.Length)) return false;
 
-		float c000 = caveInfo[xx, yy, zz];
-		float c001 = caveInfo[xx, yy, zz + 1];
-		float c010 = caveInfo[xx, yy + 1, zz];
-		float c011 = caveInfo[xx, yy + 1, zz + 1];
-		float c100 = caveInfo[xx + 1, yy, zz];
-		float c101 = caveInfo[xx + 1, yy, zz + 1];
-		float c110 = caveInfo[xx + 1, yy + 1, zz];
-		float c111 = caveInfo[xx + 1, yy + 1, zz + 1];
-
-		float lerpedCaveInfo = MathUtil.TrilinearInterpolation(c000, c001, c010, c011, c100, c101, c110, c111, (x & 3) / 4.0f, (y & 3) / 4.0f, (z & 3) / 4.0f);
+	    float cheese = lerpedCaveInfo[x, y & Chunk.LengthMask, z];
 		float cheeseThreshold = Math.Clamp(-y / CheeseDensitySpread + CheeseDensitySurface, CheeseMinDensity, CheeseMaxDensity);
-		return lerpedCaveInfo < cheeseThreshold;
+		return cheese < cheeseThreshold;
     }
 
-	private void GenerateCaves(int layer)
-    {
-		lastQueryLayer = layer;
+	public void GenerateCaves(int chunkY)
+	{
+		if (caveChunkY == chunkY) return;
+		
+		caveChunkY = chunkY;
 		Array.Clear(caveInfo);
+		Array.Clear(lerpedCaveInfo);
+
+		if (chunkY > (int)Math.Ceiling(maxHeight / Chunk.Length)) return;
 
 		for (int x = 0; x < LerpMapLength; x++)
 		for (int y = 0; y < LerpMapLength; y++)
 		for (int z = 0; z < LerpMapLength; z++)
         {
-			int xx = (x << 2) + (ChunkX << Chunk.LengthPow2);
-			int yy = (y << 2) + (layer << Chunk.LengthPow2);
-			int zz = (z << 2) + (ChunkZ << Chunk.LengthPow2);
+			int xx = (x << LerpLengthPow2) + (ChunkX << Chunk.LengthPow2);
+			int yy = (y << LerpLengthPow2) + (chunkY << Chunk.LengthPow2);
+			int zz = (z << LerpLengthPow2) + (ChunkZ << Chunk.LengthPow2);
 
 			float cheese = caveNoise.Noise3_ImproveXZ(xx / CheeseScaleXz, yy / CheeseScaleY, zz / CheeseScaleXz);
 			caveInfo[x, y, z] = cheese;
 		}
+
+		MathUtil.TrilinearInterpolation(caveInfo, lerpedCaveInfo, LerpLength, LerpLength, LerpLength);
 	}
 }

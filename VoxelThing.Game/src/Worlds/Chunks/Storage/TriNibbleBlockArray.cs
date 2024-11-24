@@ -5,8 +5,8 @@ namespace VoxelThing.Game.Worlds.Chunks.Storage;
 
 public class TriNibbleBlockArray : BlockArray
 {
-    protected Array3D<byte> ByteData = new(Chunk.Length);
-    protected NibbleArray3D NibbleData = new(Chunk.Length);
+    protected readonly Array3D<byte> ByteData = new(Chunk.Length);
+    protected readonly NibbleArray3D NibbleData = new(Chunk.Length);
 
     protected override CompoundItem SerializedData => new() 
     {
@@ -50,6 +50,6 @@ public class TriNibbleBlockArray : BlockArray
 
     protected override BlockArray GetExpandedBlockArray() => new ShortBlockArray()
     {
-        Palette = Palette
+       Palette = Palette
     };
 }

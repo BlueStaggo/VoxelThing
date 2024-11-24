@@ -19,6 +19,7 @@ public class SettingsManager
     public readonly Setting<int> VSync;
     public readonly Setting<int> RenderDistanceHorizontal;
     public readonly Setting<int> RenderDistanceVertical;
+    public readonly Setting<bool> PrioritizeChunkRendering;
     public readonly Setting<bool> ViewBobbing;
     public readonly Setting<int> FieldOfView;
     public readonly Setting<bool> ThirdPerson;
@@ -40,6 +41,7 @@ public class SettingsManager
         VSync = Add(new ChoiceSetting("Graphics", "VSync", 0, "OFF", "ON", "Adaptive"));
         RenderDistanceHorizontal = Add(new IntSliderSetting<int>("Graphics", "Horizontal Render Distance", 12, 1, 16));
         RenderDistanceVertical = Add(new IntSliderSetting<int>("Graphics", "Vertical Render Distance", 6, 1, 16));
+        PrioritizeChunkRendering = Add(new ToggleSetting("Graphics", "Prioritize Chunk Rendering", true));
         ViewBobbing = Add(new ToggleSetting("Graphics", "View Bobbing", true));
         FieldOfView = Add(new IntSliderSetting<int>("Graphics", "Field of View", 70, 30, 120));
         ThirdPerson = Add(new ToggleSetting("Graphics", "Third Person", false));

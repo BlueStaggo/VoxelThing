@@ -13,6 +13,7 @@ using VoxelThing.Client.Rendering.Textures;
 using VoxelThing.Client.Rendering.Worlds;
 using VoxelThing.Client.Settings;
 using VoxelThing.Client.Worlds;
+using VoxelThing.Game;
 using VoxelThing.Game.Blocks;
 using VoxelThing.Game.Entities;
 using VoxelThing.Game.Utils;
@@ -32,9 +33,9 @@ public class Game : GameWindow
     public const int DefaultWindowHeight = ScreenDimensions.VirtualHeight * 2;
     public const int TicksPerSecond = 20;
     public const double TickRate = 1.0 / TicksPerSecond;
-    public const bool EnableCursorGrab = true;
-    public const bool OpenGlDebugging = true; // Only enable if your drivers support OpenGL 4.3+
-
+    public const bool EnableCursorGrab = false;
+    public const bool OpenGlDebugging = SharedConstants.Debug; // Only enable this if your drivers support OpenGL 4.3+
+    
     public static double TimeElapsed => GLFW.GetTime();
 
     public static readonly string[] Skins = ["joel", "staggo", "fox", "template"];
@@ -107,6 +108,9 @@ public class Game : GameWindow
             Profile = ContextProfile.Core
         })
     {
+        if (SharedConstants.Debug)
+            Console.WriteLine("Running in a debug configuration! Expect much lower performance than release.");
+        
         // Registering events
         KeyDown += keysJustPressed.Add;
         TextInput += charactersJustTyped.Add;
@@ -272,10 +276,11 @@ public class Game : GameWindow
         
         if (KeysJustPressed.Any(e => e.Key == Keys.R))
         {
+            const double range = 1.0e3;
             Player.Position.Value = new(
-                World.Random.NextDouble(-1000.0, 1000.0),
-                64.0f,
-                World.Random.NextDouble(-1000.0, 1000.0)
+                World.Random.NextDouble(-range, range),
+                64.0,
+                World.Random.NextDouble(-range, range)
             );
             Player.Velocity.Value = Vector3d.Zero;
         }
@@ -343,7 +348,7 @@ public class Game : GameWindow
         Profiler.Pop();
         Profiler.Pop();
         
-        if (!Profiler.CompletelyBlockProfiler)
+        if (!SharedConstants.AllowProfiler)
             profilerScreen.Draw();
 
         SwapBuffers();

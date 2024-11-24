@@ -4,7 +4,6 @@ namespace VoxelThing.Game.Utils;
 
 public class Profiler(bool doMeasurements = true)
 {
-    public const bool CompletelyBlockProfiler = false;
     public const int PrintIndentWidth = 2;
     
     public readonly ProfilerEntry Root = new();
@@ -15,7 +14,7 @@ public class Profiler(bool doMeasurements = true)
 
     public void Push(string key)
     {
-        if (CompletelyBlockProfiler || !DoMeasurements) return;
+        if (!SharedConstants.AllowProfiler || !DoMeasurements) return;
         
         ProfilerEntry parent = CurrentEntry;
         if (!parent.Entries.TryGetValue(key, out ProfilerEntry? newEntry))
@@ -27,7 +26,7 @@ public class Profiler(bool doMeasurements = true)
 
     public void Pop()
     {
-        if (CompletelyBlockProfiler || !DoMeasurements) return;
+        if (!SharedConstants.AllowProfiler || !DoMeasurements) return;
 
         ProfilerEntry currentEntry = CurrentEntry;
         currentEntry.Stop();

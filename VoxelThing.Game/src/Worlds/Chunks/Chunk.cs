@@ -1,5 +1,6 @@
 using PDS;
 using VoxelThing.Game.Blocks;
+using VoxelThing.Game.Utils;
 using VoxelThing.Game.Worlds.Chunks.Storage;
 
 namespace VoxelThing.Game.Worlds.Chunks;
@@ -39,7 +40,7 @@ public class Chunk : IBlockAccess, IStructureItemSerializable
         for (int xx = 0; xx < Length; xx++)
         for (int yy = 0; yy < Length; yy++)
         for (int zz = 0; zz < Length; zz++)
-            if (blockArray.GetBlockId(x, y, z) != 0)
+            if (blockArray.GetBlockId(xx, yy, zz) != 0)
                 blockCount++;
     }
 

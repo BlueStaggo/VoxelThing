@@ -8,11 +8,11 @@ public class NibbleArray3D : Array3D<byte>
         : this(width, width, width) { }
 
     public NibbleArray3D(int width, int height, int length)
-        : this(new byte[width * height * (length + 1) / 2], width, height, length) { }
+        : this(new byte[width * height * ((length + 1) / 2)], width, height, length) { }
 
     public NibbleArray3D(byte[] data, int width, int height, int length) : base(data)
     {
-        if (data.Length < width * height * (length + 1) / 2)
+        if (data.Length < width * height * ((length + 1) / 2))
             throw new ArgumentException("Array is too small!", nameof(data));
         
         Data = data;

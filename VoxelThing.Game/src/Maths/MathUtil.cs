@@ -28,6 +28,51 @@ public static class MathUtil
         return float.Lerp(c0, c1, z);
     }
 
+    public static void TrilinearInterpolation<T>(T[,,] src, T[,,] dst, int rx, int ry, int rz)
+        where T : IFloatingPoint<T>
+    {
+        int dw = dst.GetLength(0) / rx;
+        int dh = dst.GetLength(1) / ry;
+        int dl = dst.GetLength(2) / rz;
+        
+        for (int x = 0; x < dw; x++)
+        for (int y = 0; y < dh; y++)
+        for (int z = 0; z < dl; z++)
+        {
+            T n000 = src[x, y, z];
+            T n001 = src[x, y, z + 1];
+            T n010 = src[x, y + 1, z];
+            T n011 = src[x, y + 1, z + 1];
+            T nL00 = src[x + 1, y, z] - n000;
+            T nL01 = src[x + 1, y, z + 1] - n001;
+            T nL10 = src[x + 1, y + 1, z] - n010;
+            T nL11 = src[x + 1, y + 1, z + 1] - n011;
+
+            for (int lx = 0; lx < rx; lx++)
+            {
+                T lxlerp = T.CreateTruncating(lx) / T.CreateTruncating(rx);
+                T n00 = n000 + nL00 * lxlerp;
+                T n01 = n001 + nL01 * lxlerp;
+                T nL0 = n010 + nL10 * lxlerp - n00;
+                T nL1 = n011 + nL11 * lxlerp - n01;
+
+                for (int ly = 0; ly < ry; ly++)
+                {
+                    T lylerp = T.CreateTruncating(ly) / T.CreateTruncating(ry);
+                    T n0 = n00 + nL0 * lylerp;
+                    T nL = n01 + nL1 * lylerp - n0;
+
+                    for (int lz = 0; lz < rz; lz++)
+                    {
+                        T lzlerp = T.CreateTruncating(lz) / T.CreateTruncating(rz);
+                        T n = n0 + nL * lzlerp;
+                        dst[x * rx + lx, y * ry + ly, z * rz + lz] = n;
+                    }
+                }
+            }
+        }
+    }
+
     public static int HexValue(char c) => (c | 32) % 39 - 9;
 
     public static T FloorMod<T>(T x, T y)

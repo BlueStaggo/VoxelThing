@@ -9,7 +9,8 @@ namespace VoxelThing.Client.Rendering.Worlds;
 
 public static class BlockRenderer
 {
-    private const float ShadeFactor = 0.15f;
+	private const float ShadeFactor = 0.15f;
+	private const float TextureOffset = 0.001f;
 
     private static readonly SideRenderer[] SideRenderers =
     [
@@ -54,10 +55,10 @@ public static class BlockRenderer
         int z = gz & Chunk.LengthMask;
 
 		Vector2i texture = args.Block.Texture.Get(Direction.North, args.BlockAccess, gx, gy, gz);
-		float texX = texture.X * Block.TextureResolution;
-		float texY = texture.Y * Block.TextureResolution;
-		float texXp = texX + Block.TextureResolution;
-		float texYp = texY + Block.TextureResolution;
+		float texX = texture.X * Block.TextureResolution + TextureOffset;
+		float texY = texture.Y * Block.TextureResolution + TextureOffset;
+		float texXp = texX + Block.TextureResolution - TextureOffset;
+		float texYp = texY + Block.TextureResolution - TextureOffset;
 		byte shade = GetShade(1);
 
 		AddVertices(args.Bindings,  x + 1,  y + 1,  z,  shade,  shade,  shade,  texX,   texY    );
@@ -78,10 +79,10 @@ public static class BlockRenderer
         int z = gz & Chunk.LengthMask;
 
 		Vector2i texture = args.Block.Texture.Get(Direction.South, args.BlockAccess, gx, gy, gz);
-		float texX = texture.X * Block.TextureResolution;
-		float texY = texture.Y * Block.TextureResolution;
-		float texXp = texX + Block.TextureResolution;
-		float texYp = texY + Block.TextureResolution;
+		float texX = texture.X * Block.TextureResolution + TextureOffset;
+		float texY = texture.Y * Block.TextureResolution + TextureOffset;
+		float texXp = texX + Block.TextureResolution - TextureOffset;
+		float texYp = texY + Block.TextureResolution - TextureOffset;
 		byte shade = GetShade(1);
 
 		AddVertices(args.Bindings,  x,      y + 1,  z + 1,  shade,  shade,  shade,  texX,   texY    );
@@ -102,10 +103,10 @@ public static class BlockRenderer
         int z = gz & Chunk.LengthMask;
 
 		Vector2i texture = args.Block.Texture.Get(Direction.West, args.BlockAccess, gx, gy, gz);
-		float texX = texture.X * Block.TextureResolution;
-		float texY = texture.Y * Block.TextureResolution;
-		float texXp = texX + Block.TextureResolution;
-		float texYp = texY + Block.TextureResolution;
+		float texX = texture.X * Block.TextureResolution + TextureOffset;
+		float texY = texture.Y * Block.TextureResolution + TextureOffset;
+		float texXp = texX + Block.TextureResolution - TextureOffset;
+		float texYp = texY + Block.TextureResolution - TextureOffset;
 		byte shade = GetShade(2);
 
 		AddVertices(args.Bindings,  x,  y + 1,  z,      shade,  shade,  shade,  texX,   texY    );
@@ -126,10 +127,10 @@ public static class BlockRenderer
         int z = gz & Chunk.LengthMask;
 
 		Vector2i texture = args.Block.Texture.Get(Direction.East, args.BlockAccess, gx, gy, gz);
-		float texX = texture.X * Block.TextureResolution;
-		float texY = texture.Y * Block.TextureResolution;
-		float texXp = texX + Block.TextureResolution;
-		float texYp = texY + Block.TextureResolution;
+		float texX = texture.X * Block.TextureResolution + TextureOffset;
+		float texY = texture.Y * Block.TextureResolution + TextureOffset;
+		float texXp = texX + Block.TextureResolution - TextureOffset;
+		float texYp = texY + Block.TextureResolution - TextureOffset;
 		byte shade = GetShade(2);
 
 		AddVertices(args.Bindings,  x + 1,  y + 1,  z + 1,  shade,  shade,  shade,  texX,   texY    );
@@ -150,10 +151,10 @@ public static class BlockRenderer
         int z = gz & Chunk.LengthMask;
 
 		Vector2i texture = args.Block.Texture.Get(Direction.Down, args.BlockAccess, gx, gy, gz);
-		float texX = texture.X * Block.TextureResolution;
-		float texY = texture.Y * Block.TextureResolution;
-		float texXp = texX + Block.TextureResolution;
-		float texYp = texY + Block.TextureResolution;
+		float texX = texture.X * Block.TextureResolution + TextureOffset;
+		float texY = texture.Y * Block.TextureResolution + TextureOffset;
+		float texXp = texX + Block.TextureResolution - TextureOffset;
+		float texYp = texY + Block.TextureResolution - TextureOffset;
 		byte shade = GetShade(3);
 
 		AddVertices(args.Bindings,  x + 1,  y,  z,      shade,  shade,  shade,  texX,   texY    );
@@ -174,10 +175,10 @@ public static class BlockRenderer
         int z = gz & Chunk.LengthMask;
 
 		Vector2i texture = args.Block.Texture.Get(Direction.Up, args.BlockAccess, gx, gy, gz);
-		float texX = texture.X * Block.TextureResolution;
-		float texY = texture.Y * Block.TextureResolution;
-		float texXp = texX + Block.TextureResolution;
-		float texYp = texY + Block.TextureResolution;
+		float texX = texture.X * Block.TextureResolution + TextureOffset;
+		float texY = texture.Y * Block.TextureResolution + TextureOffset;
+		float texXp = texX + Block.TextureResolution - TextureOffset;
+		float texYp = texY + Block.TextureResolution - TextureOffset;
 		byte shade = GetShade(0);
 
 		AddVertices(args.Bindings,  x + 1,  y + 1,  z + 1,  shade,  shade,  shade,  texX,   texY    );

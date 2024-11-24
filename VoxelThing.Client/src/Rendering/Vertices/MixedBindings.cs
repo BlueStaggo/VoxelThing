@@ -5,11 +5,10 @@ namespace VoxelThing.Client.Rendering.Vertices;
 
 public class MixedBindings : Bindings
 {
-    protected override int DataSize => dataSize;
+    protected override int DataSize => (int) dataStream.Length;
 
     private MemoryStream dataStream = new();
     private BinaryWriter binaryWriter;
-    private int dataSize;
 
     public MixedBindings(VertexLayout layout, PrimitiveType primitiveType = PrimitiveType.Triangles)
         : base(layout, primitiveType)
@@ -20,35 +19,30 @@ public class MixedBindings : Bindings
     public MixedBindings Put(byte vertex)
     {
         binaryWriter.Write(vertex);
-        dataSize++;
         return this;
     }
 
     public MixedBindings Put(short vertex)
     {
         binaryWriter.Write(vertex);
-        dataSize += sizeof(short);
         return this;
     }
 
     public MixedBindings Put(int vertex)
     {
         binaryWriter.Write(vertex);
-        dataSize += sizeof(int);
         return this;
     }
 
     public MixedBindings Put(float vertex)
     {
         binaryWriter.Write(vertex);
-        dataSize += sizeof(float);
         return this;
     }
 
     public MixedBindings Put(params byte[] vertices)
     {
         binaryWriter.Write(vertices);
-        dataSize += vertices.Length;
         return this;
     }
 
@@ -57,10 +51,11 @@ public class MixedBindings : Bindings
 
     public override void Clear()
     {
-        if (dataStream.Length > 256)
+        if (dataStream.Length > 1024)
         {
-            dataStream = new();
+            dataStream.Dispose();
             binaryWriter.Dispose();
+            dataStream = new();
             binaryWriter = new(dataStream, Encoding.UTF8, true);
         }
         else
@@ -69,8 +64,6 @@ public class MixedBindings : Bindings
             dataStream.SetLength(0);
         }
 
-        dataSize = 0;
-        
         base.Clear();
     }
 

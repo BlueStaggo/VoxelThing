@@ -52,7 +52,7 @@ public class World : IBlockAccess
 		OnBlockUpdate(x, y, z);
 	}
 
-	public void GenerateChunk(Chunk chunk)
+	public void GenerateChunk(Chunk chunk, Profiler? profiler = null)
     {
         int cx = chunk.X;
         int cy = chunk.Y;
@@ -60,8 +60,12 @@ public class World : IBlockAccess
 
 		GenerationInfo genInfo = genCache.GetGenerationAt(cx, cz);
 
+		profiler?.Push("gen-noise");
 		genInfo.Generate();
+		profiler?.PopPush("gen-caves");
+		genInfo.GenerateCaves(cy);
 
+		profiler?.PopPush("place-blocks");
 		for (int x = 0; x < Chunk.Length; x++)
 		for (int z = 0; z < Chunk.Length; z++)
         {
@@ -91,6 +95,7 @@ public class World : IBlockAccess
 					chunk.SetBlock(x, y, z, block);
 			}
 		}
+		profiler?.Pop();
 	}
 
 	public List<Aabb> GetSurroundingCollision(Aabb box)

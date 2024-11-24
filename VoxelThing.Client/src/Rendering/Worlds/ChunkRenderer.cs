@@ -68,8 +68,7 @@ public class ChunkRenderer : IDisposable
         opaqueBindings ??= new(VertexLayout.Block);
         translucentBindings ??= new(VertexLayout.Block);
 
-        profiler?.Push("load-chunks");
-        WorldCache worldCache = new(world, X, Y, Z);
+        WorldCache worldCache = new(world, X, Y, Z, profiler);
         
         BlockRendererArguments args = new()
         {
@@ -78,7 +77,7 @@ public class ChunkRenderer : IDisposable
             BlockAccess = worldCache
         };
 
-        profiler?.PopPush("build-buffers");
+        profiler?.Push("build-buffers");
         for (int xx = 0; xx < Chunk.Length; xx++)
         {
             args.X = (X << Chunk.LengthPow2) + xx;

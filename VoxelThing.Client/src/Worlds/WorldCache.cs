@@ -1,4 +1,5 @@
 using VoxelThing.Game.Blocks;
+using VoxelThing.Game.Utils;
 using VoxelThing.Game.Worlds;
 using VoxelThing.Game.Worlds.Chunks;
 
@@ -14,13 +15,14 @@ public readonly struct WorldCache : IBlockAccess
     private readonly Block?[,,] blocks = new Block?[Chunk.Length + Margin2, Chunk.Length + Margin2, Chunk.Length + Margin2];
     private readonly int centerX, centerY, centerZ;
 
-    public WorldCache(World world, int centerX, int centerY, int centerZ)
+    public WorldCache(World world, int centerX, int centerY, int centerZ, Profiler? profiler = null)
     {
         this.world = world;
         this.centerX = centerX;
         this.centerY = centerY;
         this.centerZ = centerZ;
 
+        profiler?.Push("load-chunks");
         for (int x = 0; x < 3; x++)
         for (int y = 0; y < 3; y++)
         for (int z = 0; z < 3; z++)
@@ -28,7 +30,8 @@ public readonly struct WorldCache : IBlockAccess
             Chunk? chunk = world.GetChunkAt(centerX + x - 1, centerY + y - 1, centerZ + z - 1);
             chunks[x, y, z] = chunk;
         }
-
+        
+        profiler?.PopPush("load-blocks");
         for (int x = 0; x < Chunk.Length + Margin2; x++)
         {
             int gx = x + (centerX << Chunk.LengthPow2) - Margin;
@@ -43,6 +46,8 @@ public readonly struct WorldCache : IBlockAccess
                 }
             }
         }
+        
+        profiler?.Pop();
     }
 
     private Chunk GetChunkAtBlock(int x, int y, int z)

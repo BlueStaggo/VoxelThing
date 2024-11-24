@@ -28,12 +28,19 @@ public class ChunkStorage(World world)
 
     protected Chunk LoadChunk(int x, int y, int z)
     {
+        Chunk chunk;
+        
         Profiler?.Push("load-chunk");
         if (World.SaveHandler.LoadChunkData(x, y, z) is { } chunkData)
-            return Chunk.Deserialize(World, x, y, z, chunkData);
+        {
+            chunk = Chunk.Deserialize(World, x, y, z, chunkData);
+            Profiler?.Pop();
+            return chunk;
+        }
             
-        Chunk chunk = new(World, x, y, z);
-        World.GenerateChunk(chunk);
+        chunk = new(World, x, y, z);
+        Profiler?.PopPush("generate-chunk");
+        World.GenerateChunk(chunk, Profiler);
         chunk.MarkNoSave();
         World.OnChunkAdded(x, y, z);
         

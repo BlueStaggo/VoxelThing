@@ -132,13 +132,17 @@ public class WorldRenderer(MainRenderer mainRenderer) : IDisposable
 
         sortedCulledChunkRenderers = sortedChunkRenderers;
 
-        int targetFps = 60;
-        if (game.Settings.FpsLimit > 0)
-            targetFps = game.Settings.FpsLimit;
-        targetFps = Math.Max(targetFps, 60);
-        
         double targetRenderTime = game.UpdateStartTime;
-        targetRenderTime += Math.Max((1.0 / targetFps) - (Game.TimeElapsed - targetRenderTime), 0.0);
+
+        if (game.Settings.PrioritizeChunkRendering)
+        {
+            int targetFps = 60;
+            if (game.Settings.FpsLimit > 0)
+                targetFps = game.Settings.FpsLimit;
+            targetFps = Math.Max(targetFps, 60);
+            
+            targetRenderTime += Math.Max((1.0 / targetFps) - (Game.TimeElapsed - targetRenderTime), 0.0);
+        }
         
         Profiler.Push("render");
         foreach (ChunkRenderer chunkRenderer in sortedChunkRenderers)
@@ -162,6 +166,9 @@ public class WorldRenderer(MainRenderer mainRenderer) : IDisposable
         worldShader.Use();
         
         double currentTime = Game.TimeElapsed;
+        List<ChunkRenderer> chunkRenderersToDraw = sortedChunkRenderers
+            .Where(chunkRenderer => chunkRenderer.IsInCamera(mainRenderer.Camera))
+            .ToList();
         for (int pass = 0; pass < 3; pass++)
         {
             bool translucent = pass > 0;
@@ -180,12 +187,9 @@ public class WorldRenderer(MainRenderer mainRenderer) : IDisposable
                     break;
             }
 
-            foreach (ChunkRenderer chunkRenderer in sortedChunkRenderers)
+            foreach (ChunkRenderer chunkRenderer in chunkRenderersToDraw)
             {
                 if (translucent ? chunkRenderer.EmptyTranslucent : chunkRenderer.EmptyOpaque)
-                    continue;
-
-                if (!chunkRenderer.IsInCamera(mainRenderer.Camera))
                     continue;
 
                 Vector3 offset = (Vector3)((Vector3d)chunkRenderer.Position * Chunk.Length - cameraPosition);

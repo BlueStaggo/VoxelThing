@@ -72,7 +72,7 @@ public abstract class BlockArray : IStructureItemSerializable
             if (Palette.Count >= MaxPaletteSize)
                 throw new InvalidOperationException("Cannot add \"" + block + "\" to palette: ran out of " + MaxPaletteSize + "spaces!");
             
-            id = Palette.LastIndexOf(null) + 1;
+            // id = Palette.LastIndexOf(null) + 1; // No need to look for null if it's not going to be in there atm
             if (id <= 0)
             {
                 Palette.Add(block);
