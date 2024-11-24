@@ -33,4 +33,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dotnet-results-8.0.x
-          path: VoxelThing.Client/publish
+          path: publish
