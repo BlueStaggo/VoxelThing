@@ -33,7 +33,7 @@ public class Game : GameWindow
     public const int DefaultWindowHeight = ScreenDimensions.VirtualHeight * 2;
     public const int TicksPerSecond = 20;
     public const double TickRate = 1.0 / TicksPerSecond;
-    public const bool EnableCursorGrab = false;
+    public const bool EnableCursorGrab = true;
     public const bool OpenGlDebugging = SharedConstants.Debug; // Only enable this if your drivers support OpenGL 4.3+
     
     public static double TimeElapsed => GLFW.GetTime();

@@ -102,12 +102,12 @@ public class World : IBlockAccess
     {
 		List<Aabb> boxes = [];
 
-		int minX = (int)Math.Floor(box.MinX - 1.0);
-		int minY = (int)Math.Floor(box.MinY - 1.0);
-		int minZ = (int)Math.Floor(box.MinZ - 1.0);
-		int maxX = (int)Math.Floor(box.MaxX + 2.0);
-		int maxY = (int)Math.Floor(box.MaxY + 2.0);
-		int maxZ = (int)Math.Floor(box.MaxZ + 2.0);
+		int minX = (int)Math.Floor(box.MinX);
+		int minY = (int)Math.Floor(box.MinY);
+		int minZ = (int)Math.Floor(box.MinZ);
+		int maxX = (int)Math.Ceiling(box.MaxX);
+		int maxY = (int)Math.Ceiling(box.MaxY);
+		int maxZ = (int)Math.Ceiling(box.MaxZ);
 
 		for (int x = minX; x < maxX; x++)
 		for (int y = minY; y < maxY; y++)
