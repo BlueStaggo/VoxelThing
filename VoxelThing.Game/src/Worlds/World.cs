@@ -22,7 +22,7 @@ public class World : IBlockAccess
 
     public World(ISaveHandler saveHandler, WorldInfo? info = null)
     {
-        info ??= saveHandler.LoadData("world")?.Deserialize<WorldInfo>() ?? new();
+        info ??= new WorldInfo().Deserialize(saveHandler.LoadData("world"));
         
         SaveHandler = saveHandler;
 		Info = info;

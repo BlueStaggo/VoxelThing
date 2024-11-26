@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace VoxelThing.Game;
 
@@ -10,9 +11,12 @@ public static class Extensions
     // Only use this for sending vertex data or doing
     // anything that doesn't require writing to the list.
     public static T[] GetInternalArray<T>(this List<T> list)
-    => (T[])list.GetType()
-        .GetField("_items", BindingFlags.NonPublic | BindingFlags.Instance)! // Shouldn't be null ;)
-        .GetValue(list);
+        => !RuntimeFeature.IsDynamicCodeCompiled
+            ? list.ToArray()
+            : (T[])list.GetType()
+                .GetField("_items", BindingFlags.NonPublic | BindingFlags.Instance)! // Shouldn't be null ;)
+                .GetValue(list);
+
 #pragma warning restore CS8600
 #pragma warning restore CS8603
 

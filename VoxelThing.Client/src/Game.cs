@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
@@ -108,6 +109,9 @@ public class Game : GameWindow
             Profile = ContextProfile.Core
         })
     {
+        if (!RuntimeFeature.IsDynamicCodeCompiled)
+            GL.LoadBindings(new GLFWBindingsContext());
+        
         if (SharedConstants.Debug)
             Console.WriteLine("Running in a debug configuration! Expect much lower performance than release.");
         

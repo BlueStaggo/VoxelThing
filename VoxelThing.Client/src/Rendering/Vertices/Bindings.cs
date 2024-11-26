@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using OpenTK.Graphics.OpenGL;
 using VoxelThing.Game;
 
@@ -80,8 +82,16 @@ public abstract class Bindings(VertexLayout layout, PrimitiveType primitiveType 
         if (DataSize == 0 || nextIndices is null || ebo == 0) return;
 
         GL.BindBuffer(BufferTarget.ElementArrayBuffer, ebo);
-        GL.BufferData(BufferTarget.ElementArrayBuffer, nextIndices.Count * sizeof(int), nextIndices.GetInternalArray(),
-            dynamic ? BufferUsageHint.DynamicDraw : BufferUsageHint.StaticDraw);
+        if (RuntimeFeature.IsDynamicCodeCompiled)
+            GL.BufferData(BufferTarget.ElementArrayBuffer, nextIndices.Count * sizeof(int), nextIndices.GetInternalArray(),
+                dynamic ? BufferUsageHint.DynamicDraw : BufferUsageHint.StaticDraw);
+        else
+            unsafe
+            {
+                fixed (int* indices = CollectionsMarshal.AsSpan(nextIndices))
+                    GL.BufferData(BufferTarget.ElementArrayBuffer, nextIndices.Count * sizeof(int), (IntPtr)indices,
+                        dynamic ? BufferUsageHint.DynamicDraw : BufferUsageHint.StaticDraw);
+            }
     }
 
     public virtual void Clear()

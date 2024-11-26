@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.IO.Compression;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace PDS;
 
@@ -31,6 +32,32 @@ public abstract class StructureItem
         typeof(StringItem),
         typeof(CompoundItem),
         typeof(ListItem),
+    ];
+    
+    public static readonly Func<object>[] RegisteredConstructors =
+    [
+        () => new NumericItem<sbyte>(),
+        () => new ArrayItem<sbyte>(),
+        () => new NumericItem<byte>(),
+        () => new ArrayItem<byte>(),
+        () => new NumericItem<short>(),
+        () => new ArrayItem<short>(),
+        () => new NumericItem<ushort>(),
+        () => new ArrayItem<ushort>(),
+        () => new NumericItem<int>(),
+        () => new ArrayItem<int>(),
+        () => new NumericItem<uint>(),
+        () => new ArrayItem<uint>(),
+        () => new NumericItem<long>(),
+        () => new ArrayItem<long>(),
+        () => new NumericItem<ulong>(),
+        () => new ArrayItem<ulong>(),
+        () => new BoolItem(),
+        () => new NumericItem<float>(),
+        () => new NumericItem<double>(),
+        () => new StringItem(),
+        () => new CompoundItem(),
+        () => new ListItem(),
     ];
 
     public static readonly HashSet<Type> SupportedTypes =
@@ -193,7 +220,8 @@ public abstract class StructureItem
                 return serializable.Serialize();
         }
 
-        if (obj.GetType().GetCustomAttribute<PdsAutoSerializableAttribute>() is null)
+        if (!RuntimeFeature.IsDynamicCodeCompiled
+            || obj.GetType().GetCustomAttribute<PdsAutoSerializableAttribute>() is null)
             return EofItem.Instance;
         
         CompoundItem compound = new();
@@ -228,7 +256,7 @@ public abstract class StructureItem
         if (type == 0 || type > RegisteredTypes.Length)
             return EofItem.Instance;
 
-        if (RegisteredTypes[type - 1].GetConstructor([])?.Invoke(null) is not StructureItem item)
+        if (RegisteredConstructors[type - 1].Invoke() is not StructureItem item)
             return EofItem.Instance;
 
         item.Read(reader);

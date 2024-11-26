@@ -37,4 +37,10 @@ public class VertexLayout(params VertexType[] vertexTypes)
         GL.BindBuffer(BufferTarget.ArrayBuffer, vbo);
         GL.BufferData(BufferTarget.ArrayBuffer, length, data, dynamic ? BufferUsageHint.DynamicDraw : BufferUsageHint.StaticDraw);
     }
+    
+    public static void BufferData(int vbo, int length, IntPtr data, bool dynamic)
+    {
+        GL.BindBuffer(BufferTarget.ArrayBuffer, vbo);
+        GL.BufferData(BufferTarget.ArrayBuffer, length, data, dynamic ? BufferUsageHint.DynamicDraw : BufferUsageHint.StaticDraw);
+    }
 }

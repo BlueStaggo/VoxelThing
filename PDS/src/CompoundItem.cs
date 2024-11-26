@@ -1,5 +1,6 @@
 ﻿
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace PDS;
 
@@ -56,7 +57,8 @@ public class CompoundItem(Dictionary<string, StructureItem> value) : StructureIt
 
     public object? Deserialize(Type type)
     {
-        if (type.GetCustomAttribute<PdsAutoSerializableAttribute>() is null) return default;
+        if (!RuntimeFeature.IsDynamicCodeCompiled
+            || type.GetCustomAttribute<PdsAutoSerializableAttribute>() is null) return default;
 
         ConstructorInfo? constructor = type.GetConstructor([]);
         if (constructor is null) return default;

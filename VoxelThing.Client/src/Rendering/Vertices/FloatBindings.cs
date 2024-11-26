@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using OpenTK.Graphics.OpenGL;
 using VoxelThing.Game;
 
@@ -29,7 +31,16 @@ public class FloatBindings : Bindings
     }
 
     protected override void UploadVertices(bool dynamic)
-        => VertexLayout.BufferData(Vbo, nextData.Count * sizeof(float), nextData.GetInternalArray(), dynamic);
+    {
+        if (RuntimeFeature.IsDynamicCodeCompiled)
+            VertexLayout.BufferData(Vbo, nextData.Count * sizeof(float), nextData.GetInternalArray(), dynamic);   
+        else
+            unsafe
+            {
+                fixed (float* data = CollectionsMarshal.AsSpan(nextData))
+                    VertexLayout.BufferData(Vbo, nextData.Count * sizeof(float), (IntPtr)data, dynamic);   
+            }
+    }
 
     public override void Clear()
     {

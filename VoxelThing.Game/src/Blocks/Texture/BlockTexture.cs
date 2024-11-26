@@ -21,7 +21,7 @@ public readonly record struct ColumnTexture(Vector2i Side, Vector2i TopBottom) :
     public Vector2i Get(Direction face, IBlockAccess? blockAccess, int x, int y, int z)
     => face switch
     {
-        Direction.Up | Direction.Down => TopBottom,
+        Direction.Up or Direction.Down => TopBottom,
         _ => Side,
     };
 }
