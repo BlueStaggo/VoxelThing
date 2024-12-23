@@ -34,22 +34,42 @@ public class MainMenuScreen : Screen
         var playButton = AddControl(new Label(this)
         {
             Text = "Singleplayer",
-            Position = (-75, 0),
+            Position = (-75, -15),
             Size = (150, 20),
             AlignPosition = (0.5f, 0.5f),
             HasBackground = true
         });
         playButton.OnClick += (_, _) => Game.CurrentScreen = new SaveSelectScreen(Game);
         
+        var multiplayerButton = AddControl(new Label(this)
+        {
+            Text = "Multiplayer",
+            Position = (-75, 10),
+            Size = (150, 20),
+            AlignPosition = (0.5f, 0.5f),
+            HasBackground = true
+        });
+        multiplayerButton.OnClick += (_, _) => Game.CurrentScreen = new MultiplayerConnectionScreen(Game);
+        
         var settingsButton = AddControl(new Label(this)
         {
             Text = "Settings",
-            Position = (-75, 30),
+            Position = (-75, 35),
             Size = (150, 20),
             AlignPosition = (0.5f, 0.5f),
             HasBackground = true
         });
         settingsButton.OnClick += (_, _) => Game.CurrentScreen = new SettingsScreen(Game);
+        
+        var quitButton = AddControl(new Label(this)
+        {
+            Text = "Exit Game",
+            Position = (-75, 60),
+            Size = (150, 20),
+            AlignPosition = (0.5f, 0.5f),
+            HasBackground = true
+        });
+        quitButton.OnClick += (_, _) => Game.Close();
     }
 
     protected override void OnKeyPressed(KeyboardKeyEventArgs args) { }
@@ -69,7 +89,7 @@ public class MainMenuScreen : Screen
         renderer.Fonts.Outlined.Print(
             "VOXEL THING",
             renderer.ScreenDimensions.IntWidth / 2.0f,
-            40.0f + hover * 2.0f,
+            35.0f + hover * 2.0f,
             0.0f, 1.0f, 1.0f, 4.0f,
             align: 0.5f
         );

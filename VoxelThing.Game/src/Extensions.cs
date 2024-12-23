@@ -1,5 +1,7 @@
+using System.Buffers;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using MemoryPack;
 
 namespace VoxelThing.Game;
 
@@ -38,5 +40,14 @@ public static class Extensions
         if (index < 0)
             index = ~index;
         list.Insert(index, item);
+    }
+
+    private record NeverMemoryPackable;
+
+    public static bool IsMemoryPackable(Type type)
+    {
+        if (!RuntimeFeature.IsDynamicCodeCompiled) return true;
+        MemoryPackWriter<IBufferWriter<byte>> dummyWriter = new();
+        return dummyWriter.GetFormatter(typeof(NeverMemoryPackable)).GetType() != dummyWriter.GetFormatter(type).GetType();
     }
 }

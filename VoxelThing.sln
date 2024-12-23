@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VoxelThing.Game", "VoxelThi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PDS", "PDS\PDS.csproj", "{2E1A7600-03EF-438E-BD48-F40777934F7B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VoxelThing.Server", "VoxelThing.Server\VoxelThing.Server.csproj", "{AA527A9B-529A-412C-805B-CBA0B937C4D5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{2E1A7600-03EF-438E-BD48-F40777934F7B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2E1A7600-03EF-438E-BD48-F40777934F7B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2E1A7600-03EF-438E-BD48-F40777934F7B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AA527A9B-529A-412C-805B-CBA0B937C4D5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AA527A9B-529A-412C-805B-CBA0B937C4D5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AA527A9B-529A-412C-805B-CBA0B937C4D5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AA527A9B-529A-412C-805B-CBA0B937C4D5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -75,5 +75,5 @@ public class Control(Screen screen)
             OnClick?.Invoke(this, args);
     }
 
-    public bool IsInContainer(Container container) => this.Container == container;
+    public bool IsInContainer(Container container) => Container == container;
 }

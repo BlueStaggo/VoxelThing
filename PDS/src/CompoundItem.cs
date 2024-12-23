@@ -58,10 +58,10 @@ public class CompoundItem(Dictionary<string, StructureItem> value) : StructureIt
     public object? Deserialize(Type type)
     {
         if (!RuntimeFeature.IsDynamicCodeCompiled
-            || type.GetCustomAttribute<PdsAutoSerializableAttribute>() is null) return default;
+            || type.GetCustomAttribute<PdsAutoSerializableAttribute>() is null) return null;
 
         ConstructorInfo? constructor = type.GetConstructor([]);
-        if (constructor is null) return default;
+        if (constructor is null) return null;
 
         object obj = constructor.Invoke(null);
         foreach (FieldInfo field in type.GetFields(BindingFlags.Public | BindingFlags.Instance))

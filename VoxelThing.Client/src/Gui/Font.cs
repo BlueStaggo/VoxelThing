@@ -78,7 +78,7 @@ public class Font
 		for (int i = 0; i < text.Length; i++)
         {
 			char c = text[i];
-			if (c == '\u00a7' && i < text.Length + 1)
+			if (c == '\u00a7' && text.Length - i > 1)
             {
 				c = char.ToLower(text[++i]);
 				if (c == 'c' && text.Length - i > 6)
@@ -168,7 +168,7 @@ public class Font
 		for (int i = 0; i < text.Length; i++)
         {
 			char c = text[i];
-			if (c == '\u00a7' && i < text.Length + 1)
+			if (c == '\u00a7' && text.Length - i > 1)
             {
 				c = char.ToLower(text[++i]);
 				if (c == 'c' && text.Length - i > 6)

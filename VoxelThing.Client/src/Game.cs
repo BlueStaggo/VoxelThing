@@ -1,4 +1,6 @@
 ﻿using System.Collections.ObjectModel;
+using System.Net;
+using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using OpenTK.Graphics.OpenGL;
@@ -17,6 +19,7 @@ using VoxelThing.Client.Worlds;
 using VoxelThing.Game;
 using VoxelThing.Game.Blocks;
 using VoxelThing.Game.Entities;
+using VoxelThing.Game.Networking;
 using VoxelThing.Game.Utils;
 using VoxelThing.Game.Worlds;
 using VoxelThing.Game.Worlds.Chunks;
@@ -65,6 +68,8 @@ public class Game : GameWindow
     public MainRenderer MainRenderer { get; private set; }
     public readonly SettingsManager Settings;
 
+    public Connection? Connection { get; private set; }
+    
     public World? World;
     public Player? Player;
     public IPlayerController? PlayerController;
@@ -226,6 +231,9 @@ public class Game : GameWindow
                 }
             }
             Profiler.Pop();
+            
+            while (Connection is not null && Connection.PendingPackets.TryDequeue(out IPacket? packet))
+                HandlePacket(packet);
         }
 
         if (!paused)
@@ -436,6 +444,47 @@ public class Game : GameWindow
         World = null;
         MainRenderer.WorldRenderer.RefreshRenderers();
         GC.Collect();
+    }
+
+    public async Task<bool> ConnectToServer(string ip)
+    {
+        int port = 8577;
+        int colonIndex = ip.LastIndexOf(':');
+        if (colonIndex > 0)
+        {
+            string portString = ip[(colonIndex + 1)..^1];
+            if (!int.TryParse(portString, out port))
+                port = 8577;
+            ip = ip[..colonIndex];
+        }
+
+        if (ip is "127.0.0.1" or "localhost")
+            ip = Dns.GetHostName();
+        
+        IPHostEntry ipHostEntry = await Dns.GetHostEntryAsync(ip);
+        IPAddress ipAddress = ipHostEntry.AddressList[0];
+        IPEndPoint ipEndPoint = new(ipAddress, port);
+
+        TcpClient client = new();
+        await client.ConnectAsync(ipEndPoint);
+        DisconnectFromServer();
+        
+        Connection = new(client, ipEndPoint, PacketSide.Server);
+        Connection.Disconnected += (_, _) => DisconnectFromServer();
+        Connection.StartListening();
+        return true;
+    }
+
+    public void DisconnectFromServer()
+    {
+        Connection?.Dispose();
+        Connection = null;
+    }
+
+    public void HandlePacket(IPacket packet)
+    {
+        if (CurrentScreen is MultiplayerTestScreen multiplayerTestScreen)
+            multiplayerTestScreen.HandlePacket(packet);
     }
 
     public static void Main()
