@@ -248,7 +248,6 @@ public class Game : GameWindow
             camera.Position.Y += Player.EyeLevel;
             float yaw = (float)Player.Yaw;
             float pitch = (float)Player.Pitch;
-            camera.Rotation = (yaw, pitch);
 
             // Selection raycast
             if (World is not null)
@@ -277,6 +276,8 @@ public class Game : GameWindow
                 camera.Position.Y += Math.Abs(renderWalk) * 0.1;
                 camera.Position += (Vector3d)camera.Right * renderWalk * 0.025;
             }
+            
+            camera.Rotation = (yaw, pitch);
         }
 
         Profiler.Pop();
