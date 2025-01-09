@@ -23,7 +23,7 @@ public class PacketManager
         if (!Extensions.IsMemoryPackable(typeof(TPacket)))
             throw new ArgumentException($"Packet type \"{typeof(TPacket).Name}\" is not MessagePackable");
         
-        ushort id = TPacket.Id;
+        ushort id = TPacket.StaticId;
         packetIdMap[id] = typeof(TPacket);
         return this;
     }
@@ -37,7 +37,7 @@ public class PacketManager
     {
         Client
             .Register<CSendMessagePacket>()
-            .Register<CUpdateDisplayName>();
+            .Register<CUpdateDisplayNamePacket>();
         Server
             .Register<SSendMessagePacket>();
     }

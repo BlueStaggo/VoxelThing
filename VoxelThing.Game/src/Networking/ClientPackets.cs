@@ -4,8 +4,8 @@ namespace VoxelThing.Game.Networking;
 
 [MemoryPackable]
 public readonly partial record struct CSendMessagePacket(string Message) : IClientPacket<CSendMessagePacket>
-{ public static ushort Id => 1; }
+{ public static ushort StaticId => 1; }
 
 [MemoryPackable]
-public readonly partial record struct CUpdateDisplayName(string DisplayName) : IClientPacket<CUpdateDisplayName>
-{ public static ushort Id => 2; }
+public readonly partial record struct CUpdateDisplayNamePacket(string DisplayName) : IClientPacket<CUpdateDisplayNamePacket>
+{ public static ushort StaticId => 2; }

@@ -11,15 +11,14 @@ public class GameServer : IDisposable
 {
     private const int TickRate = 50; // In milliseconds
     
+    public readonly ConcurrentDictionary<IPEndPoint, Client> Clients = [];
+
     private readonly TcpListener tcpListener;
     private ServerConfig config = new();
     
-    private readonly ConcurrentDictionary<IPEndPoint, Connection> clients = [];
-    private readonly ConcurrentDictionary<IPEndPoint, string> displayNames = [];
-
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private readonly CancellationToken cancellationToken;
-    
+
     public GameServer()
     {
         cancellationToken = cancellationTokenSource.Token;
@@ -82,31 +81,12 @@ public class GameServer : IDisposable
             {
                 tickTime += TickRate;
                 
-                foreach (Connection client in clients.Values)
-                    while (client.PendingPackets.TryDequeue(out IPacket? packet))
-                        HandlePacket(client, packet);
+                foreach (Client client in Clients.Values)
+                    while (client.Connection.PendingPackets.TryDequeue(out IPacket? packet))
+                        client.PacketHandler.HandlePacket(packet);
             }
             
             Thread.Sleep(1);
-        }
-    }
-
-    private void HandlePacket(Connection sender, IPacket packet)
-    {
-        switch (packet)
-        {
-            case CSendMessagePacket sendMessage:
-                if (!displayNames.TryGetValue(sender.IpEndPoint, out string? author))
-                    author = sender.IpEndPoint.ToString();
-                Console.WriteLine($"{author}: {sendMessage.Message}");
-                foreach (Connection client in clients.Values)
-                    client.SendPacket(new SSendMessagePacket(author, sendMessage.Message));
-                break;
-            
-            case CUpdateDisplayName updateDisplayName:
-                displayNames[sender.IpEndPoint] = updateDisplayName.DisplayName;
-                Console.WriteLine($"{sender.IpEndPoint} set their display name to {updateDisplayName.DisplayName}");
-                break;
         }
     }
 
@@ -136,19 +116,18 @@ public class GameServer : IDisposable
     
     private void AddClient(Connection connection)
     {
-        if (clients.TryGetValue(connection.IpEndPoint, out Connection? previousClient))
-            DisconnectClient(previousClient);
+        if (Clients.TryGetValue(connection.IpEndPoint, out Client? previousClient))
+            DisconnectClient(previousClient.Connection);
 
-        clients[connection.IpEndPoint] = connection;
+        Clients[connection.IpEndPoint] = new(this, connection);
         Console.WriteLine($"{connection.IpEndPoint} connected");
     }
 
     public void DisconnectClient(Connection connection)
     {
-        clients.Remove(connection.IpEndPoint, out _);
-        displayNames.Remove(connection.IpEndPoint, out _);
+        Clients.Remove(connection.IpEndPoint, out Client? client);
         Console.WriteLine($"{connection.IpEndPoint} disconnected");
-        connection.Dispose();
+        client?.Dispose();
     }
 
     public void Dispose()

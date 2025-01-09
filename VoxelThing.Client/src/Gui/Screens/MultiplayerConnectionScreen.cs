@@ -63,7 +63,7 @@ public class MultiplayerConnectionScreen : Screen
     {
         if (connectionTask?.IsCompletedSuccessfully ?? false)
         {
-            Game.Connection?.SendPacket(new CUpdateDisplayName(nameBox.Text));
+            Game.Connection?.SendPacket(new CUpdateDisplayNamePacket(nameBox.Text));
             Game.CurrentScreen = new MultiplayerTestScreen(Game, nameBox.Text);
         }
     }

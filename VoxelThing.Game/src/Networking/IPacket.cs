@@ -4,8 +4,9 @@ namespace VoxelThing.Game.Networking;
 
 public interface IPacket
 {
+    public static virtual ushort StaticId => throw new NotImplementedException("Packet must have an id!");
     public PacketSide Side { get; }
-    public static virtual ushort Id => throw new NotImplementedException("Packet must have an id!");
+    public ushort Id { get; }
 
     public static IPacket? Read(BinaryReader reader, PacketSide senderSide)
     {
@@ -27,9 +28,11 @@ public interface IPacket
 public interface IPacket<T> : IPacket
     where T : IPacket<T>
 {
+    ushort IPacket.Id => T.StaticId;
+    
     void IPacket.Write(BinaryWriter writer)
     {
-        ushort id = T.Id;
+        ushort id = T.StaticId;
         if (id == 0)
             return;
         byte[] serialized = MemoryPackSerializer.Serialize((T)this);
