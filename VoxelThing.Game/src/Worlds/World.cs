@@ -1,6 +1,8 @@
+using System.Collections.ObjectModel;
 using OpenTK.Mathematics;
 using PDS;
 using VoxelThing.Game.Blocks;
+using VoxelThing.Game.Entities;
 using VoxelThing.Game.Worlds.Chunks;
 using VoxelThing.Game.Worlds.Generation;
 using VoxelThing.Game.Worlds.Storage;
@@ -14,8 +16,12 @@ public class World : IBlockAccess
     public readonly ISaveHandler SaveHandler;
     public readonly WorldInfo Info;
     public readonly Random64 Random = new();
+    public bool Remote { get; protected init; }
 
-    protected readonly ChunkStorage ChunkStorage;
+    protected readonly Dictionary<Guid, Entity> EntityMap = [];
+    public readonly ReadOnlyDictionary<Guid, Entity> Entities;
+
+    protected ChunkStorage ChunkStorage { get; init; }
     private readonly GenCache genCache;
 
     public Profiler? Profiler { get; protected init;  }
@@ -28,7 +34,25 @@ public class World : IBlockAccess
 		Info = info;
         ChunkStorage = new(this);
         genCache = new(this);
+
+        Entities = EntityMap.AsReadOnly();
     }
+
+    public virtual void AddEntity(Entity entity)
+    {
+	    EntityMap[entity.Guid] = entity;
+    }
+
+    public void Tick()
+    {
+	    foreach (Entity entity in EntityMap.Values)
+		    TickEntity(entity);
+    }
+
+    protected virtual void TickEntity(Entity entity)
+    {
+		entity.Tick();   
+    }  
     
 	public Chunk? GetChunkAt(int x, int y, int z) => ChunkStorage.GetChunkAt(x, y, z);
 
@@ -42,6 +66,8 @@ public class World : IBlockAccess
 
 	public Block? GetBlock(int x, int y, int z) => GetChunkAtBlock(x, y, z)?
         .GetBlock(x & Chunk.LengthMask, y & Chunk.LengthMask, z & Chunk.LengthMask);
+
+	public void AddChunk(Chunk chunk) => ChunkStorage.AddChunk(chunk);
 
 	public void SetBlock(int x, int y, int z, Block? block)
     {

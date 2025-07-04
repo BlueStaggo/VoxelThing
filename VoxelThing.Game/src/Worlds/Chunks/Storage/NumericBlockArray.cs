@@ -1,13 +1,15 @@
 using System.Numerics;
+using MemoryPack;
 using PDS;
 using VoxelThing.Game.Maths;
 
 namespace VoxelThing.Game.Worlds.Chunks.Storage;
 
-public abstract class NumericBlockArray<T>(Array3D<T> data) : BlockArray
+public abstract partial class NumericBlockArray<T>(Array3D<T> data) : BlockArray
     where T : IBinaryInteger<T>
 {
-    protected readonly Array3D<T> Data = data;
+    [MemoryPackInclude]
+    protected Array3D<T> Data { get; init; } = data;
 
     protected override CompoundItem SerializedData => new() 
     {
@@ -35,7 +37,8 @@ public abstract class NumericBlockArray<T>(Array3D<T> data) : BlockArray
     }
 }
 
-public class NibbleBlockArray() : NumericBlockArray<byte>(new NibbleArray3D(Chunk.Length))
+[MemoryPackable]
+public partial class NibbleBlockArray() : NumericBlockArray<byte>(new NibbleArray3D(Chunk.Length))
 {
     protected override int MaxPaletteSize => 15;
 
@@ -45,7 +48,8 @@ public class NibbleBlockArray() : NumericBlockArray<byte>(new NibbleArray3D(Chun
     };
 }
 
-public class ByteBlockArray() : NumericBlockArray<byte>(new(Chunk.Length))
+[MemoryPackable]
+public partial class ByteBlockArray() : NumericBlockArray<byte>(new(Chunk.Length))
 {
     protected override int MaxPaletteSize => 255;
 
@@ -55,7 +59,8 @@ public class ByteBlockArray() : NumericBlockArray<byte>(new(Chunk.Length))
     };
 }
 
-public class ShortBlockArray() : NumericBlockArray<ushort>(new(Chunk.Length))
+[MemoryPackable]
+public partial class ShortBlockArray() : NumericBlockArray<ushort>(new(Chunk.Length))
 {
     protected override int MaxPaletteSize => 65535;
 }

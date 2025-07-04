@@ -9,4 +9,5 @@ public static class SharedConstants
 #endif
 
     public const bool AllowProfiler = Debug;
+    public const bool PrintPackets = true;
 }

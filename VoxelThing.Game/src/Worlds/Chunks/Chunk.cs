@@ -1,6 +1,5 @@
 using PDS;
 using VoxelThing.Game.Blocks;
-using VoxelThing.Game.Utils;
 using VoxelThing.Game.Worlds.Chunks.Storage;
 
 namespace VoxelThing.Game.Worlds.Chunks;
@@ -15,12 +14,12 @@ public class Chunk : IBlockAccess, IStructureItemSerializable
 
     public readonly World World;
     public readonly int X, Y, Z;
+    public BlockArray BlockArray { get; private set; }
 
     public int BlockX => X * Length;
     public int BlockY => Y * Length;
     public int BlockZ => Z * Length;
     
-    private BlockArray blockArray;
     private int blockCount;
     private bool hasChanged;
 
@@ -35,7 +34,7 @@ public class Chunk : IBlockAccess, IStructureItemSerializable
         X = x;
         Y = y;
         Z = z;
-        this.blockArray = blockArray;
+        BlockArray = blockArray;
         
         for (int xx = 0; xx < Length; xx++)
         for (int yy = 0; yy < Length; yy++)
@@ -52,19 +51,19 @@ public class Chunk : IBlockAccess, IStructureItemSerializable
     public int ToLocalY(int y) => y - (Y << LengthPow2);
     public int ToLocalZ(int z) => z - (Z << LengthPow2);
 
-    public virtual Block? GetBlock(int x, int y, int z) => blockArray.GetBlock(x, y, z);
+    public virtual Block? GetBlock(int x, int y, int z) => BlockArray.GetBlock(x, y, z);
 
     public virtual void SetBlock(int x, int y, int z, Block? block)
     {
-        while (blockArray.RequiresExpansion(block))
-            blockArray = blockArray.Expand();
+        while (BlockArray.RequiresExpansion(block))
+            BlockArray = BlockArray.Expand();
         
-        if (block is null && blockArray.GetBlockId(x, y, z) != 0)
+        if (block is null && BlockArray.GetBlockId(x, y, z) != 0)
             blockCount--;
-        else if (block is not null && blockArray.GetBlockId(x, y, z) == 0)
+        else if (block is not null && BlockArray.GetBlockId(x, y, z) == 0)
             blockCount++;
 
-        blockArray.SetBlock(x, y, z, block);
+        BlockArray.SetBlock(x, y, z, block);
         hasChanged = true;
     }
 
@@ -79,7 +78,7 @@ public class Chunk : IBlockAccess, IStructureItemSerializable
 
     public StructureItem Serialize()
     => new CompoundItem()
-        .Put("Blocks", blockArray);
+        .Put("Blocks", BlockArray);
 
     public static Chunk Deserialize(World world, int x, int y, int z, CompoundItem compound)
     {

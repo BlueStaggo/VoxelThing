@@ -1,4 +1,5 @@
-﻿using System.Collections.ObjectModel;
+﻿using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 using System.Numerics;
 using OpenTK.Mathematics;
 
@@ -6,7 +7,7 @@ namespace VoxelThing.Game.Maths;
 
 public static class MathUtil
 {
-    private static readonly Dictionary<int, ReadOnlyCollection<Vector3i>> SpherePointLists = [];
+    private static readonly ConcurrentDictionary<Vector3i, ReadOnlyCollection<Vector3i>> CuboidPointLists = [];
 
     public static T Threshold<T>(T x, T min, T max)
         where T : INumber<T>
@@ -88,19 +89,21 @@ public static class MathUtil
         where T : IFloatingPoint<T>
         => T.One - (T.One - x) * (T.One - x);
 
-    public static ReadOnlyCollection<Vector3i> GetSpherePoints(int radius)
+    public static ReadOnlyCollection<Vector3i> GetCuboidPoints(int width, int height, int length)
     {
-        if (SpherePointLists.TryGetValue(radius, out var points))
+        Vector3i dimensions = (width, height, length);
+        
+        if (CuboidPointLists.TryGetValue(dimensions, out var points))
             return points;
 
         List<Vector3i> mutablePoints = [];
-        for (int x = -radius; x <= radius; x++)
-        for (int y = -radius; y <= radius; y++)
-        for (int z = -radius; z <= radius; z++)
+        for (int x = -width; x <= width; x++)
+        for (int y = -height; y <= height; y++)
+        for (int z = -length; z <= length; z++)
             mutablePoints.Add(new Vector3i(x, y, z));
 
         points = new([.. mutablePoints.OrderBy(v => v.EuclideanLengthSquared)]);
-        SpherePointLists[radius] = points;
+        CuboidPointLists[dimensions] = points;
         return points;
     }
 

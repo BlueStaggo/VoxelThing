@@ -90,7 +90,7 @@ public class IngameScreen(Game game) : Screen(game)
         MainRenderer renderer = Game.MainRenderer;
 
         Block? block = GetPlacedBlock();
-        Texture playerTexture = renderer.Textures.Get(Game.Player.Texture);
+        Texture playerTexture = renderer.Textures.Get($"entities/{Game.Player.Texture}.png");
         Texture blocksTexture = renderer.Textures.Get("blocks.png");
 
         float handSize = renderer.ScreenDimensions.IntHeight;

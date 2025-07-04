@@ -1,6 +1,9 @@
+using MemoryPack;
+
 namespace VoxelThing.Game.Maths;
 
-public class Array3D<T>
+[MemoryPackable]
+public partial class Array3D<T>
 {
     public T[] Data { get; protected init; }
     public int Width { get; init; }
@@ -18,6 +21,7 @@ public class Array3D<T>
     public Array3D(int width, int height, int length)
         : this(new T[width * height * length], width, height, length) { }
 
+    [MemoryPackConstructor]
     public Array3D(T[] data, int width, int height, int length)
     {
         if (data.Length < width * height * length)

@@ -1,9 +1,11 @@
+using MemoryPack;
 using PDS;
 using VoxelThing.Game.Blocks;
 
 namespace VoxelThing.Game.Worlds.Chunks.Storage;
 
-public class EmptyBlockArray : BlockArray
+[MemoryPackable]
+public partial class EmptyBlockArray : BlockArray
 {
     public static readonly EmptyBlockArray Instance = new();
 

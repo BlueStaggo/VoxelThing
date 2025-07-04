@@ -4,6 +4,8 @@ namespace VoxelThing.Game.Networking;
 
 public class PacketManager
 {
+    public const int ProtocolVersion = 1;
+    
     public static readonly PacketManager Client = new();
     public static readonly PacketManager Server = new();
     
@@ -36,9 +38,21 @@ public class PacketManager
     static PacketManager()
     {
         Client
-            .Register<CSendMessagePacket>()
-            .Register<CUpdateDisplayNamePacket>();
+            .Register<CHandshake>()
+            .Register<CRequestConnection>()
+            .Register<CUpdatePosition>()
+            .Register<CSetBlock>()
+            .Register<CThrowBouncy>()
+        ;
         Server
-            .Register<SSendMessagePacket>();
+            .Register<SHandshake>()
+            .Register<SConnectionAccepted>()
+            .Register<SDisconnect>()
+            .Register<SSendMessage>()
+            .Register<SLoadChunk>()
+            .Register<SSetBlock>()
+            .Register<SAddEntity>()
+            .Register<SMoveEntity>()
+        ;
     }
 }

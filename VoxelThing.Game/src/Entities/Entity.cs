@@ -2,6 +2,7 @@ using OpenTK.Mathematics;
 using PDS;
 using VoxelThing.Game.Maths;
 using VoxelThing.Game.Worlds;
+using VoxelThing.Game.Worlds.Chunks;
 
 namespace VoxelThing.Game.Entities;
 
@@ -11,8 +12,11 @@ public class Entity(World world) : IStructureItemSerializable
     public const double TerminalVelocity = 4.0;
 
     public readonly World World = world;
+    public Guid Guid { get; init; } = Guid.NewGuid();
 
     public string Texture { get; protected set; } = "template";
+    public virtual string? Type => "entity";
+    protected virtual bool UpdateInRemoteWorld => false;
 
     public double Radius { get; protected set; } = 0.8;
     public double Height { get; protected set; } = 1.8;
@@ -27,12 +31,21 @@ public class Entity(World world) : IStructureItemSerializable
         (int)Math.Floor(Position.Value.Y),
         (int)Math.Floor(Position.Value.Z)
     );
+    public Vector3i ChunkPosition => new(
+        (int)Math.Floor(Position.Value.X / Chunk.Length),
+        (int)Math.Floor(Position.Value.Y / Chunk.Length),
+        (int)Math.Floor(Position.Value.Z / Chunk.Length)
+    );
 
     public virtual Vector2 SpriteSize => new(2.0f, 2.0f);
     public virtual int SpriteFrame => 0;
     public virtual double EyeLevel => Height - 0.2;
 
     public readonly InterpolatedBool OnGround = new();
+    public readonly InterpolatedBool OnWall = new();
+    public readonly InterpolatedBool OnWallX = new();
+    public readonly InterpolatedBool OnWallZ = new();
+    public readonly InterpolatedBool OnCeiling = new();
     public bool NoClip = false;
     public bool HasGravity = true;
 
@@ -44,14 +57,15 @@ public class Entity(World world) : IStructureItemSerializable
         Pitch.Tick();
         OnGround.Tick();
 
-        Update();
+        if (!World.Remote || UpdateInRemoteWorld)
+            Update();
     }
 
     protected virtual void Update()
     {
         UpdateMovement();
-        UpdateAnimation();
         UpdateCollision();
+        UpdateAnimation();
     }
 
     protected virtual void UpdateMovement()
@@ -74,7 +88,7 @@ public class Entity(World world) : IStructureItemSerializable
         Aabb collisionBox = CollisionBox;
         List<Aabb> intersectingBoxes = World.GetSurroundingCollision(collisionBox.ExpandToPoint(Velocity.Value));
 
-        double oldVelocityY = Velocity.Value.Y;
+        Vector3d oldVelocity = Velocity.Value;
 
         foreach (Aabb box in intersectingBoxes)
             Velocity.Value.Y = box.CalculateYOffset(collisionBox, Velocity.Value.Y);
@@ -88,18 +102,31 @@ public class Entity(World world) : IStructureItemSerializable
             Velocity.Value.Z = box.CalculateZOffset(collisionBox, Velocity.Value.Z);
         collisionBox = collisionBox.Offset(0.0, 0.0, Velocity.Value.Z);
 
-        OnGround.Value = oldVelocityY < 0.0 && oldVelocityY < Velocity.Value.Y;
+        OnGround.Value = oldVelocity.Y < Math.Min(Velocity.Value.Y, 0.0);
+        OnWallX.Value = Math.Abs(oldVelocity.X) > Math.Abs(Velocity.Value.X);
+        OnWallZ.Value = Math.Abs(oldVelocity.Z) > Math.Abs(Velocity.Value.Z);
+        OnWall.Value = OnWallX || OnWallZ;
+        OnCeiling.Value = oldVelocity.Y > Math.Max(Velocity.Value.Y, 0.0);
         Position.Value += Velocity.Value;
     }
 
-    public virtual Vector3d GetRenderPosition(double partialTick) => Position.GetInterpolatedValue(partialTick);
+    public virtual Vector3d GetRenderPosition(double partialTick = 1.0) => Position.GetInterpolatedValue(partialTick);
 
-    public virtual double GetRenderYaw(double partialTick) => Yaw.GetInterpolatedValue(partialTick);
+    public virtual double GetRenderYaw(double partialTick = 1.0) => Yaw.GetInterpolatedValue(partialTick);
 
-    public virtual double GetRenderPitch(double partialTick) => Pitch.GetInterpolatedValue(partialTick);
+    public virtual double GetRenderPitch(double partialTick = 1.0) => Pitch.GetInterpolatedValue(partialTick);
 
+    public Vector3 GetLookVector(double partialTick = 1.0)
+    {
+        float yaw = (float)Yaw.GetInterpolatedValue(partialTick);
+        float pitch = (float)Pitch.GetInterpolatedValue(partialTick);
+        return -Vector3.UnitZ
+               * Matrix3.CreateRotationX(float.DegreesToRadians(pitch))
+               * Matrix3.CreateRotationY(float.DegreesToRadians(-yaw - 90.0f));
+    }
+    
     public virtual int GetSpriteAngle(double partialTick, double cameraYaw)
-        => (int)(MathUtil.FloorMod(GetRenderYaw(partialTick) - 180.0f - cameraYaw + 22.5f, 360.0f) / 45.0f) % 8;
+        => (int)(MathUtil.FloorMod(-GetRenderYaw(partialTick) + 180.0f + cameraYaw + 22.5f, 360.0f) / 45.0f) % 8;
 
     public StructureItem Serialize() => new CompoundItem()
         .Put("PosX", Position.Value.X)

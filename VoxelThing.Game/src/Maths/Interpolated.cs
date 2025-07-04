@@ -6,6 +6,7 @@ public abstract class Interpolated<T>
 {
     public T PreviousValue { get; protected set; }
     public T Value;
+    public bool HasChanged => Equals(PreviousValue, Value);
 
     protected Interpolated(T value) => PreviousValue = Value = value;
 

@@ -1,12 +1,16 @@
+using MemoryPack;
 using PDS;
 using VoxelThing.Game.Maths;
 
 namespace VoxelThing.Game.Worlds.Chunks.Storage;
 
-public class TriNibbleBlockArray : BlockArray
+[MemoryPackable]
+public partial class TriNibbleBlockArray : BlockArray
 {
-    protected readonly Array3D<byte> ByteData = new(Chunk.Length);
-    protected readonly NibbleArray3D NibbleData = new(Chunk.Length);
+    [MemoryPackInclude]
+    protected Array3D<byte> ByteData { get; init; } = new(Chunk.Length);
+    [MemoryPackInclude]
+    protected NibbleArray3D NibbleData { get; init; } = new(Chunk.Length);
 
     protected override CompoundItem SerializedData => new() 
     {

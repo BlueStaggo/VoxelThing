@@ -1,8 +1,11 @@
-﻿using PDS;
+﻿using MemoryPack;
+using PDS;
 
 namespace VoxelThing.Game;
 
-public readonly record struct Identifier(string Namespace, string Name) : IStructureItemSerializable
+[MemoryPackable]
+[method: MemoryPackConstructor]
+public readonly partial record struct Identifier(string Namespace, string Name) : IStructureItemSerializable
 {
     public Identifier(string name) : this("vt", name) { }
 

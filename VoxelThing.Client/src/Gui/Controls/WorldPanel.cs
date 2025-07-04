@@ -29,7 +29,7 @@ public class WorldPanel : Container
             AlignSize = (1.0f, 1.0f),
             HasBackground = true
         });
-        label.OnClick += (_, _) => Screen.Game.StartWorld(SaveHandler);
+        label.OnClick += (_, _) => Screen.Game.StartWorld(SaveHandler, false);
 
         var deleteButton = AddControl(new IconButton(Screen)
         {

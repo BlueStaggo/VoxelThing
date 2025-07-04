@@ -1,9 +1,17 @@
+using System.Buffers;
+using MemoryPack;
 using PDS;
 using VoxelThing.Game.Blocks;
 
 namespace VoxelThing.Game.Worlds.Chunks.Storage;
 
-public abstract class BlockArray : IStructureItemSerializable
+[MemoryPackable]
+[MemoryPackUnion(0, typeof(EmptyBlockArray))]
+[MemoryPackUnion(1, typeof(NibbleBlockArray))]
+[MemoryPackUnion(2, typeof(ByteBlockArray))]
+[MemoryPackUnion(3, typeof(TriNibbleBlockArray))]
+[MemoryPackUnion(4, typeof(ShortBlockArray))]
+public abstract partial class BlockArray : IStructureItemSerializable
 {
     private static readonly Func<BlockArray>[] RegisteredSuppliers =
     [
@@ -15,15 +23,18 @@ public abstract class BlockArray : IStructureItemSerializable
 
     private static readonly Dictionary<Type, int> RegisteredTypeIds = [];
 
+    [MemoryPackIgnore]
     protected internal List<Block?> Palette = [];
     
+    [MemoryPackIgnore]
     protected abstract int MaxPaletteSize { get; }
+    [MemoryPackIgnore]
     protected virtual CompoundItem SerializedData => new();
 
     protected internal abstract int GetBlockId(int x, int y, int z);
     protected internal abstract void SetBlockId(int x, int y, int z, int id);
 
-    static BlockArray()
+    static partial void StaticConstructor()
     {
         int id = 0;
         RegisteredTypeIds[typeof(EmptyBlockArray)] = id++;
@@ -110,5 +121,24 @@ public abstract class BlockArray : IStructureItemSerializable
         blockArray.Deserialize(compoundItem);
 
         return blockArray;
+    }
+
+    [MemoryPackOnSerialized]
+    private static void WriteBlockArray<TBufferWriter>(ref MemoryPackWriter<TBufferWriter> writer, ref BlockArray? value)
+        where TBufferWriter : IBufferWriter<byte>
+    {
+        if (value is null)
+            return;
+        writer.WriteArray(value.Palette.Select(b => b?.Id.FullName ?? Block.AirId.FullName).ToArray());
+    }
+    
+    [MemoryPackOnDeserialized]
+    private static void ReadBlockArray(ref MemoryPackReader reader, ref BlockArray? value)
+    {
+        if (value is null)
+            return;
+        value.Palette = (reader.ReadArray<Identifier>() ?? [])
+            .Select(Block.FromId)
+            .ToList();
     }
 }

@@ -4,17 +4,21 @@ using Hjson;
 using System.Net;
 using System.Net.Sockets;
 using VoxelThing.Game.Networking;
+using VoxelThing.Game.Worlds.Storage;
+using VoxelThing.Server.Worlds;
 
 namespace VoxelThing.Server;
 
 public class GameServer : IDisposable
 {
     private const int TickRate = 50; // In milliseconds
+    private const int HandshakeRate = 20; // In ticks
     
     public readonly ConcurrentDictionary<IPEndPoint, Client> Clients = [];
+    public readonly ServerWorld World;
+    public readonly ServerConfig Config;
 
     private readonly TcpListener tcpListener;
-    private ServerConfig config = new();
     
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private readonly CancellationToken cancellationToken;
@@ -24,10 +28,12 @@ public class GameServer : IDisposable
         cancellationToken = cancellationTokenSource.Token;
         
         PacketManager.Init();
-        LoadConfig();
+        Config = LoadConfig();
         
-        int port = config.Port;
+        Console.WriteLine("Loading world");
+        World = new ServerWorld(this, new FolderSaveHandler("world"));
         
+        int port = Config.Port;
         Console.WriteLine($"Hosting on port {port}");
         IPEndPoint ipEndPoint = new(IPAddress.Any, port);
         
@@ -35,19 +41,20 @@ public class GameServer : IDisposable
         tcpListener.Start();
     }
 
-    private void LoadConfig()
+    private static ServerConfig LoadConfig()
     {
         bool saveConfig = true;
-        
+
+        ServerConfig? loadedConfig = null;
         try
         {
-            string? configHjson = HjsonValue.Load("server-config.hjson")?.ToString();
+            string? configHjson = HjsonValue.Load("server-config.hjson").ToString();
             if (configHjson is not null)
             {
                 ServerConfig? deserializedConfig = JsonSerializer.Deserialize<ServerConfig>(configHjson);
                 if (deserializedConfig is not null)
                 {
-                    config = deserializedConfig;
+                    loadedConfig = deserializedConfig;
                     saveConfig = false;
                 }
             }
@@ -57,8 +64,12 @@ public class GameServer : IDisposable
             // ignored
         }
 
+        loadedConfig ??= new ServerConfig();
+
         if (saveConfig)
-            JsonValue.Parse(JsonSerializer.Serialize(config)).Save("server-config.hjson", Stringify.Hjson);
+            JsonValue.Parse(JsonSerializer.Serialize(loadedConfig)).Save("server-config.hjson", Stringify.Hjson);
+
+        return loadedConfig;
     }
 
     public void Run()
@@ -66,6 +77,7 @@ public class GameServer : IDisposable
         Task.Run(ListenForClients, cancellationToken);
 
         int tickTime = Environment.TickCount;
+        int ticks = 0;
         while (!cancellationToken.IsCancellationRequested)
         {
             int currentTime = Environment.TickCount;
@@ -80,12 +92,22 @@ public class GameServer : IDisposable
             while (currentTime - tickTime >= TickRate)
             {
                 tickTime += TickRate;
-                
+                ticks++;
+
                 foreach (Client client in Clients.Values)
+                {
+                    client.Update();
+                    
+                    if (ticks % HandshakeRate == 0)
+                        client.SendPacket(new SHandshake());
+                    
                     while (client.Connection.PendingPackets.TryDequeue(out IPacket? packet))
                         client.PacketHandler.HandlePacket(packet);
+                }
+                
+                World.Tick();
             }
-            
+
             Thread.Sleep(1);
         }
     }
@@ -125,9 +147,23 @@ public class GameServer : IDisposable
 
     public void DisconnectClient(Connection connection)
     {
-        Clients.Remove(connection.IpEndPoint, out Client? client);
+        if (!Clients.Remove(connection.IpEndPoint, out Client? client))
+            return;
         Console.WriteLine($"{connection.IpEndPoint} disconnected");
         client?.Dispose();
+    }
+
+    public void SendPacketToAllClients(IPacket packet)
+    {
+        foreach (Client client in Clients.Values)
+            client.SendPacket(packet);
+    }
+    
+    public void SendPacketToOtherClients(IPacket packet, Client exception)
+    {
+        foreach (Client client in Clients.Values)
+            if (client != exception)
+                client.SendPacket(packet);
     }
 
     public void Dispose()

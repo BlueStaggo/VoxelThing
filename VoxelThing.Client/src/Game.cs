@@ -37,6 +37,8 @@ public class Game : GameWindow
     public const int DefaultWindowHeight = ScreenDimensions.VirtualHeight * 2;
     public const int TicksPerSecond = 20;
     public const double TickRate = 1.0 / TicksPerSecond;
+    public const int HandshakeRate = TicksPerSecond;
+    public const int MaxTimeWithoutHandshake = TicksPerSecond * 5;
     public const bool EnableCursorGrab = true;
     public const bool OpenGlDebugging = SharedConstants.Debug; // Only enable this if your drivers support OpenGL 4.3+
     
@@ -52,6 +54,7 @@ public class Game : GameWindow
     public int CurrentChunkUpdates;
     public int ChunkUpdates { get; private set; }
     
+    public int Ticks { get; private set; }
     private double tickTime;
     private double fpsTimer;
     private int fpsCounter;
@@ -68,10 +71,10 @@ public class Game : GameWindow
     public MainRenderer MainRenderer { get; private set; }
     public readonly SettingsManager Settings;
 
-    public Connection? Connection { get; private set; }
+    public ClientPacketHandler? PacketHandler { get; private set; }
     
     public World? World;
-    public Player? Player;
+    public ClientPlayer? Player;
     public IPlayerController? PlayerController;
     public bool InWorld => World is not null && Player is not null;
     public BlockRaycastResult SelectionCast { get; private set; } = BlockRaycastResult.NoHit;
@@ -189,7 +192,7 @@ public class Game : GameWindow
         if (screen == ingameScreen)
             DoControls();
         screen.HandleInput();
-        bool paused = screen.PausesWorld;
+        bool paused = screen.PausesWorld && PacketHandler is null;
 
         // Update player
         
@@ -213,12 +216,14 @@ public class Game : GameWindow
         {
             Profiler.Push("tick");
             tickTime -= TickRate;
+            Ticks++;
             currentScreen?.Tick();
 
             if (InWorld && !paused)
             {
                 ingameScreen?.Tick();
                 Player?.Tick();
+                World?.Tick();
 
                 if (Player is not null)
                 {
@@ -231,9 +236,26 @@ public class Game : GameWindow
                 }
             }
             Profiler.Pop();
-            
-            while (Connection is not null && Connection.PendingPackets.TryDequeue(out IPacket? packet))
-                HandlePacket(packet);
+
+            if (PacketHandler is not null)
+            {
+                if (Ticks > PacketHandler.TimeSinceLastHandshake
+                    && Ticks - PacketHandler.TimeSinceLastHandshake > MaxTimeWithoutHandshake)
+                {
+                    PacketHandler.HandlePacket(new SDisconnect("Timed out"));
+                }
+                else
+                {
+                    if (Ticks % HandshakeRate == 0)
+                        PacketHandler.Server.SendPacket(CHandshake.Instance);
+
+                    if (Player is not null)
+                        PacketHandler.Server.SendPacket(new CUpdatePosition(Player));
+
+                    while (PacketHandler.Server.PendingPackets.TryDequeue(out IPacket? packet))
+                        PacketHandler.HandlePacket(packet);
+                }
+            }
         }
 
         if (!paused)
@@ -246,8 +268,8 @@ public class Game : GameWindow
             Camera camera = MainRenderer.Camera;
             camera.Position = Player.Position.GetInterpolatedValue(PartialTick);
             camera.Position.Y += Player.EyeLevel;
-            float yaw = (float)Player.Yaw;
-            float pitch = (float)Player.Pitch;
+            float yaw = (float)Player.Yaw.Value;
+            float pitch = (float)Player.Pitch.Value;
 
             // Selection raycast
             if (World is not null)
@@ -265,6 +287,8 @@ public class Game : GameWindow
                 pitch += (float)Player.FallAmount.GetInterpolatedValue(PartialTick) * 2.5f;
             }
 
+            camera.Rotation = (yaw, pitch);
+            
             // View bobbing / Third person
             if (Settings.ThirdPerson)
             {
@@ -276,8 +300,6 @@ public class Game : GameWindow
                 camera.Position.Y += Math.Abs(renderWalk) * 0.1;
                 camera.Position += (Vector3d)camera.Right * renderWalk * 0.025;
             }
-            
-            camera.Rotation = (yaw, pitch);
         }
 
         Profiler.Pop();
@@ -312,6 +334,21 @@ public class Game : GameWindow
 
         if (KeysJustPressed.Any(e => e.Key == Keys.E))
             CurrentScreen = new BlockInventory(this);
+
+        if (KeysJustPressed.Any(e => e.Key == Keys.T))
+        {
+            if (PacketHandler is not null)
+            {
+                PacketHandler.Server.SendPacket(new CThrowBouncy());
+            }
+            else
+            {
+                BouncyEntity bouncy = new(World);
+                bouncy.Position.JumpTo(Player.Position);
+                bouncy.Velocity.JumpTo(MainRenderer.Camera.Front * 5.0f);
+                World.AddEntity(bouncy);
+            }
+        }
     }
 
     protected override void OnRenderFrame(FrameEventArgs args)
@@ -408,17 +445,19 @@ public class Game : GameWindow
     public void StartWorld(string saveName, WorldInfo? worldInfo = null)
     {
         string path = Path.Combine(WorldDirectory, saveName);
-        StartWorld(new FolderSaveHandler(path), worldInfo);
+        StartWorld(new FolderSaveHandler(path), false, worldInfo);
     }
     
-    public void StartWorld(ISaveHandler saveHandler, WorldInfo? worldInfo = null)
+    public void StartWorld(ISaveHandler saveHandler, bool remote, WorldInfo? worldInfo = null)
     {
         ExitWorld();
 
-        World = new SingleplayerWorld(this, saveHandler, worldInfo);
+        World = remote
+            ? new RemoteWorld(this, saveHandler, worldInfo)
+            : new SingleplayerWorld(this, saveHandler, worldInfo);
         MainRenderer.WorldRenderer.RefreshRenderers();
         PlayerController = new ClientPlayerController(this);
-        Player = new Player(World, PlayerController);
+        Player = new ClientPlayer(World, PlayerController);
         Player.Position.JumpTo(new(0.0, 16.0, 0.0));
 
         CompoundItem? playerData = saveHandler?.LoadData("player");
@@ -470,22 +509,16 @@ public class Game : GameWindow
         await client.ConnectAsync(ipEndPoint);
         DisconnectFromServer();
         
-        Connection = new(client, ipEndPoint, PacketSide.Server);
-        Connection.Disconnected += (_, _) => DisconnectFromServer();
-        Connection.StartListening();
+        PacketHandler = new(this, new(client, ipEndPoint, PacketSide.Server));
+        PacketHandler.Server.Disconnected += (_, _) => PacketHandler.HandlePacket(new SDisconnect("Server shut down"));
+        PacketHandler.Server.StartListening();
         return true;
     }
 
     public void DisconnectFromServer()
     {
-        Connection?.Dispose();
-        Connection = null;
-    }
-
-    public void HandlePacket(IPacket packet)
-    {
-        if (CurrentScreen is MultiplayerTestScreen multiplayerTestScreen)
-            multiplayerTestScreen.HandlePacket(packet);
+        PacketHandler?.Server.Dispose();
+        PacketHandler = null;
     }
 
     public static void Main()

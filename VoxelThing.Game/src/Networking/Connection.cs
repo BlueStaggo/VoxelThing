@@ -43,6 +43,8 @@ public class Connection : IDisposable
     {
         try
         {
+            if (SharedConstants.PrintPackets)
+                Console.WriteLine("> " + packet);
             packet.Write(networkBinaryWriter);
         }
         catch (IOException)

@@ -18,15 +18,25 @@ public class ChunkStorage(World world)
     public Chunk? GetChunkAt(int x, int y, int z)
     {
         Vector3i key = new(x, y, z);
-        if (Chunks.TryGetValue(key, out Chunk? chunk) && chunk.X == x && chunk.Y == y && chunk.Z == z)
+        if (Chunks.TryGetValue(key, out Chunk? chunk))
             return chunk;
         
         chunk?.OnUnload();
-        chunk = Chunks[key] = LoadChunk(x, y, z);
+        chunk = LoadChunk(x, y, z);
+        if (chunk is not null)
+            Chunks[key] = chunk;
         return chunk;
     }
 
-    protected Chunk LoadChunk(int x, int y, int z)
+    public void AddChunk(Chunk chunk)
+    {
+        Vector3i key = new(chunk.X, chunk.Y, chunk.Z);
+        if (Chunks.TryGetValue(key, out Chunk? prevChunk))
+            prevChunk.OnUnload();
+        Chunks[key] = chunk;
+    }
+
+    protected virtual Chunk? LoadChunk(int x, int y, int z)
     {
         Chunk chunk;
         

@@ -8,6 +8,7 @@ using VoxelThing.Client.Rendering.Shaders.Modules;
 using VoxelThing.Client.Rendering.Textures;
 using VoxelThing.Client.Rendering.Worlds;
 using VoxelThing.Game.Blocks;
+using VoxelThing.Game.Entities;
 using VoxelThing.Game.Maths;
 using VoxelThing.Game.Utils;
 using VoxelThing.Game.Worlds;
@@ -142,11 +143,14 @@ public class MainRenderer : IDisposable
         if (Game.Player is not null)
         {
             Profiler.PopPush("entities");
-            string skin = $"entities/{Game.Skins[Game.Settings.Skin]}.png";
+            string skin = Game.Skins[Game.Settings.Skin];
             Game.Player.SetTexture(skin);
             if (Game.Settings.ThirdPerson)
                 EntityRenderer.RenderEntity(Game.Player);
         }
+        
+        foreach (Entity entity in Game.World.Entities.Values)
+            EntityRenderer.RenderEntity(entity);
 
         Profiler.PopPush("clouds");
         Textures.Get("environment/clouds.png").Use();

@@ -1,6 +1,7 @@
 using VoxelThing.Client.Gui.Controls;
 using VoxelThing.Client.Rendering;
 using VoxelThing.Game.Networking;
+using VoxelThing.Game.Worlds.Storage;
 
 namespace VoxelThing.Client.Gui.Screens;
 
@@ -8,6 +9,7 @@ public class MultiplayerConnectionScreen : Screen
 {
     private readonly TextBox nameBox;
     private Task<bool>? connectionTask;
+    private bool sentConnectionRequest;
     
     public MultiplayerConnectionScreen(Game game) : base(game)
     {
@@ -61,10 +63,17 @@ public class MultiplayerConnectionScreen : Screen
 
     public override void Tick()
     {
-        if (connectionTask?.IsCompletedSuccessfully ?? false)
+        if ((connectionTask?.IsCompletedSuccessfully ?? false) && Game.PacketHandler is not null)
         {
-            Game.Connection?.SendPacket(new CUpdateDisplayNamePacket(nameBox.Text));
-            Game.CurrentScreen = new MultiplayerTestScreen(Game, nameBox.Text);
+            if (!sentConnectionRequest)
+            {
+                sentConnectionRequest = true;
+                Game.PacketHandler.Server.SendPacket(new CRequestConnection(PacketManager.ProtocolVersion, nameBox.Text));
+            }
+        }
+        else
+        {
+            sentConnectionRequest = false;
         }
     }
 
@@ -73,13 +82,10 @@ public class MultiplayerConnectionScreen : Screen
         base.Draw();
         if (connectionTask is not null)
         {
-            string displayString = "§cffff00Waiting...";
-            if (connectionTask.IsCompletedSuccessfully)
-                displayString = "§c00ff00Success!";
-            else if (connectionTask.IsFaulted)
-            {
-                displayString = "§cff0000Failure!";
-            }
+            string displayString =
+                connectionTask.IsCompletedSuccessfully ? "§c00ff00Success!"
+                : connectionTask.IsFaulted ? "§cff0000Failure!"
+                : "§cffff00Waiting...";
             
             MainRenderer renderer = Game.MainRenderer;
             ScreenDimensions dimensions = renderer.ScreenDimensions;

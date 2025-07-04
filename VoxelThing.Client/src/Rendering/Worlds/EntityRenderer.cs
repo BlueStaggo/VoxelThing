@@ -6,12 +6,10 @@ namespace VoxelThing.Client.Rendering.Worlds;
 
 public class EntityRenderer(MainRenderer mainRenderer)
 {
-    private readonly MainRenderer mainRenderer = mainRenderer;
-
     public void RenderEntity(Entity entity)
     {
         double partialTick = mainRenderer.Game.PartialTick;
-        Texture texture = mainRenderer.Textures.Get(entity.Texture);
+        Texture texture = mainRenderer.Textures.Get($"entities/{entity.Texture}.png");
         Vector3d cameraPosition = mainRenderer.Camera.Position;
         
         int rotation = entity.GetSpriteAngle(partialTick, mainRenderer.Camera.Yaw);
