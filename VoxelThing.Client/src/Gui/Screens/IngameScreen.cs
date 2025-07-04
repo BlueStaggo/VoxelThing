@@ -7,6 +7,7 @@ using VoxelThing.Client.Rendering.Textures;
 using VoxelThing.Game;
 using VoxelThing.Game.Blocks;
 using VoxelThing.Game.Maths;
+using VoxelThing.Game.Networking;
 using VoxelThing.Game.Worlds;
 
 namespace VoxelThing.Client.Gui.Screens;
@@ -239,22 +240,29 @@ public class IngameScreen(Game game) : Screen(game)
         int z = raycast.HitZ;
         Direction face = raycast.HitFace;
 
-        if (args.Button == MouseButton.Button1)
+        switch (args.Button)
         {
-            Game.World.SetBlock(x, y, z, null);
-        }
-        else if (args.Button == MouseButton.Button2)
-        {
-            Block? placedBlock = GetPlacedBlock();
-            if (placedBlock is null) return;
+            case MouseButton.Button1:
+            {
+                Game.World.SetBlock(x, y, z, null);
+                Game.PacketHandler?.Server.SendPacket(new CSetBlock(x, y, z, Block.AirId));
+                break;
+            }
+            case MouseButton.Button2:
+            {
+                Block? placedBlock = GetPlacedBlock();
+                if (placedBlock is null) return;
             
-            x += face.GetX();
-            y += face.GetY();
-            z += face.GetZ();
+                x += face.GetX();
+                y += face.GetY();
+                z += face.GetZ();
 
-            if (Game.World.GetBlock(x, y, z) is not null) return;
-            Game.World.SetBlock(x, y, z, placedBlock);
-            swingTick = 10;
+                if (Game.World.GetBlock(x, y, z) is not null) return;
+                Game.World.SetBlock(x, y, z, placedBlock);
+                Game.PacketHandler?.Server.SendPacket(new CSetBlock(x, y, z, placedBlock.Id));
+                swingTick = 10;
+                break;
+            }
         }
     }
 }
