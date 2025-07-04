@@ -34,6 +34,7 @@ public class ChunkStorage(World world)
         if (Chunks.TryGetValue(key, out Chunk? prevChunk))
             prevChunk.OnUnload();
         Chunks[key] = chunk;
+        World.OnChunkAdded(chunk.X, chunk.Y, chunk.Z);
     }
 
     protected virtual Chunk? LoadChunk(int x, int y, int z)

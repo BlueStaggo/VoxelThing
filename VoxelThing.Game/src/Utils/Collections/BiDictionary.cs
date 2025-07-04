@@ -1,7 +1,7 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 
-namespace VoxelThing.Game.Utils;
+namespace VoxelThing.Game.Utils.Collections;
 
 public class BiDictionary<TKey, TValue> : IDictionary<TKey, TValue>
     where TKey : notnull

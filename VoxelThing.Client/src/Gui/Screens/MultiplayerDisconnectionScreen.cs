@@ -25,9 +25,10 @@ public class MultiplayerDisconnectionScreen : Screen
         var exitButton = AddControl(new Label(this)
         {
             Text = "Exit",
-            HasBackground = true,
             Position = (0, 10),
+            Size = (100, 20),
             AlignPosition = (0.5f, 0.5f),
+            HasBackground = true
         });
         exitButton.OnClick += (_, _) => Game.CurrentScreen = null;
     }

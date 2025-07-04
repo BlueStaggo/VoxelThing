@@ -4,7 +4,8 @@ using VoxelThing.Game.Worlds.Chunks.Storage;
 
 namespace VoxelThing.Game.Worlds.Chunks;
 
-public class Chunk : IBlockAccess, IStructureItemSerializable
+public class Chunk(World world, int x, int y, int z, BlockArray blockArray)
+    : IBlockAccess, IStructureItemSerializable
 {
     public const int LengthPow2 = 5;
     public const int Length = 1 << LengthPow2;
@@ -12,36 +13,18 @@ public class Chunk : IBlockAccess, IStructureItemSerializable
     public const int Area = 1 << LengthPow2 * 2;
     public const int Volume = 1 << LengthPow2 * 3;
 
-    public readonly World World;
-    public readonly int X, Y, Z;
-    public BlockArray BlockArray { get; private set; }
+    public readonly World World = world;
+    public readonly int X = x, Y = y, Z = z;
+    public BlockArray BlockArray { get; private set; } = blockArray;
 
     public int BlockX => X * Length;
     public int BlockY => Y * Length;
     public int BlockZ => Z * Length;
     
-    private int blockCount;
     private bool hasChanged;
 
-    public bool Empty => blockCount <= 0;
-
     public Chunk(World world, int x, int y, int z)
-        : this(world, x, y, z, EmptyBlockArray.Instance) { }
-
-    public Chunk(World world, int x, int y, int z, BlockArray blockArray)
-    {
-        World = world;
-        X = x;
-        Y = y;
-        Z = z;
-        BlockArray = blockArray;
-        
-        for (int xx = 0; xx < Length; xx++)
-        for (int yy = 0; yy < Length; yy++)
-        for (int zz = 0; zz < Length; zz++)
-            if (blockArray.GetBlockId(xx, yy, zz) != 0)
-                blockCount++;
-    }
+        : this(world, x, y, z, new BlockArray()) { }
 
     public int ToGlobalX(int x) => x + (X << LengthPow2);
     public int ToGlobalY(int y) => y + (Y << LengthPow2);
@@ -55,14 +38,6 @@ public class Chunk : IBlockAccess, IStructureItemSerializable
 
     public virtual void SetBlock(int x, int y, int z, Block? block)
     {
-        while (BlockArray.RequiresExpansion(block))
-            BlockArray = BlockArray.Expand();
-        
-        if (block is null && BlockArray.GetBlockId(x, y, z) != 0)
-            blockCount--;
-        else if (block is not null && BlockArray.GetBlockId(x, y, z) == 0)
-            blockCount++;
-
         BlockArray.SetBlock(x, y, z, block);
         hasChanged = true;
     }

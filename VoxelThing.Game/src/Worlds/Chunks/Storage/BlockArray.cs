@@ -1,124 +1,83 @@
 using System.Buffers;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using MemoryPack;
 using PDS;
 using VoxelThing.Game.Blocks;
+using VoxelThing.Game.Utils.Collections;
 
 namespace VoxelThing.Game.Worlds.Chunks.Storage;
 
 [MemoryPackable]
-[MemoryPackUnion(0, typeof(EmptyBlockArray))]
-[MemoryPackUnion(1, typeof(NibbleBlockArray))]
-[MemoryPackUnion(2, typeof(ByteBlockArray))]
-[MemoryPackUnion(3, typeof(TriNibbleBlockArray))]
-[MemoryPackUnion(4, typeof(ShortBlockArray))]
-public abstract partial class BlockArray : IStructureItemSerializable
+public partial class BlockArray(int bitSize = 0) : IStructureItemSerializable
 {
-    private static readonly Func<BlockArray>[] RegisteredSuppliers =
-    [
-        () => new NibbleBlockArray(),
-        () => new ByteBlockArray(),
-        () => new TriNibbleBlockArray(),
-        () => new ShortBlockArray(),
-    ];
-
-    private static readonly Dictionary<Type, int> RegisteredTypeIds = [];
-
-    [MemoryPackIgnore]
-    protected internal List<Block?> Palette = [];
+    [MemoryPackIgnore] private VariableBitArray data = new(Chunk.Volume, bitSize);
+    [MemoryPackIgnore] private List<Block?> palette = [];
     
-    [MemoryPackIgnore]
-    protected abstract int MaxPaletteSize { get; }
-    [MemoryPackIgnore]
-    protected virtual CompoundItem SerializedData => new();
-
-    protected internal abstract int GetBlockId(int x, int y, int z);
-    protected internal abstract void SetBlockId(int x, int y, int z, int id);
-
-    static partial void StaticConstructor()
+    [MemoryPackConstructor]
+    public BlockArray() : this(0)
     {
-        int id = 0;
-        RegisteredTypeIds[typeof(EmptyBlockArray)] = id++;
-        RegisteredTypeIds[typeof(NibbleBlockArray)] = id++;
-        RegisteredTypeIds[typeof(ByteBlockArray)] = id++;
-        RegisteredTypeIds[typeof(TriNibbleBlockArray)] = id++;
-        RegisteredTypeIds[typeof(ShortBlockArray)] = id++;
     }
 
-    public virtual BlockArray Expand()
-    {
-        BlockArray nextBlockArray = GetExpandedBlockArray();
-
-        for (int x = 0; x < Chunk.Length; x++)
-        for (int y = 0; y < Chunk.Length; y++)
-        for (int z = 0; z < Chunk.Length; z++)
-            nextBlockArray.SetBlockId(x, y, z, GetBlockId(x, y, z));
-        
-        return nextBlockArray;
-    }
-
-    protected virtual BlockArray GetExpandedBlockArray()
-        => throw new InvalidOperationException("Cannot expand to larger block storage!");
-
-    public virtual bool RequiresExpansion(Block? block)
-        => Palette.Count >= MaxPaletteSize && !Palette.Contains(block);
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int ArrayIndex(int x, int y, int z) => (x << Chunk.LengthPow2 | y) << Chunk.LengthPow2 | z;
+    
     public Block? GetBlock(int x, int y, int z)
     {
-        int id = GetBlockId(x, y, z);
-        if (id == 0 || id > Palette.Count) return null;
-        return Palette[id - 1];
+        int id = (int)data[ArrayIndex(x, y, z)];
+        if (id <= 0 || id > palette.Count) return null;
+        return palette[id - 1];
     }
 
     public void SetBlock(int x, int y, int z, Block? block)
     {
+        int coord = ArrayIndex(x, y, z);
+        
         if (block is null)
         {
-            SetBlockId(x, y, z, 0);
+            data[coord] = 0ul;
             return;
         }
 
-        int id = Palette.IndexOf(block) + 1;
+        int id = palette.IndexOf(block) + 1;
         if (id == 0)
         {
-            if (Palette.Count >= MaxPaletteSize)
-                throw new InvalidOperationException("Cannot add \"" + block + "\" to palette: ran out of " + MaxPaletteSize + "spaces!");
-            
-            // id = Palette.LastIndexOf(null) + 1; // No need to look for null if it's not going to be in there atm
-            if (id <= 0)
+            palette.Add(block);
+            id = palette.Count;
+
+            if (id > (int)data.ElementMask)
             {
-                Palette.Add(block);
-                id = Palette.Count;
-            }
-            else
-            {
-                Palette[id - 1] = block;
+                if (data.BitSize >= 32)
+                    throw new OutOfMemoryException("Cannot expand to larger block storage!");
+                data = data.Resize(data.BitSize + 1);
             }
         }
 
-        SetBlockId(x, y, z, id);
+        data[coord] = (ulong)id;
     }
 
-    public abstract void Deserialize(CompoundItem compoundItem);
-
     public StructureItem Serialize()
-        => SerializedData
-            .Put("Type", (byte) RegisteredTypeIds[GetType()])
-            .Put("Palette", Palette.Select(b => b?.Id.FullName ?? Block.AirId.FullName).ToList());
+        => new CompoundItem()
+        {
+            ["Palette"] = new ListItem(palette.Select(StructureItem (b) => new StringItem(b?.Id.FullName ?? Block.AirId.FullName)).ToList()),
+            ["Data"] = new ArrayItem<ulong>(data.Array.ToArray()),
+            ["BitSize"] = new NumericItem<int>(data.BitSize)
+        };
 
     public static BlockArray Deserialize(StructureItem? structureItem)
     {
         if (structureItem is not CompoundItem compoundItem)
-            return EmptyBlockArray.Instance;
-        
-        byte type = compoundItem["Type"]?.TryByteValue ?? 0;
-        if (type == 0 || type > RegisteredTypeIds.Count)
-            return EmptyBlockArray.Instance;
-        
-        BlockArray blockArray = RegisteredSuppliers[type - 1].Invoke();
-        blockArray.Palette = compoundItem["Palette"]?.TryListValue?
-            .Select(s => Block.FromId(Identifier.FromFullName(s.StringValue)))
-            .ToList() ?? [];
-        blockArray.Deserialize(compoundItem);
+            return new BlockArray();
+
+        BlockArray blockArray = new()
+        {
+            palette = compoundItem["Palette"]?.TryListValue?
+                .Select(s => Block.FromId(Identifier.FromFullName(s.StringValue)))
+                .ToList() ?? [],
+            data = new VariableBitArray(Chunk.Volume,
+                compoundItem["BitSize"]?.TryIntValue ?? 0,
+                compoundItem["Data"]?.TryULongArrayValue)
+        };
 
         return blockArray;
     }
@@ -127,18 +86,26 @@ public abstract partial class BlockArray : IStructureItemSerializable
     private static void WriteBlockArray<TBufferWriter>(ref MemoryPackWriter<TBufferWriter> writer, ref BlockArray? value)
         where TBufferWriter : IBufferWriter<byte>
     {
-        if (value is null)
-            return;
-        writer.WriteArray(value.Palette.Select(b => b?.Id.FullName ?? Block.AirId.FullName).ToArray());
+        Debug.Assert(value is not null, "value is not null");
+        writer.WritePackableArray(value.palette.Select(b => b?.Id ?? Block.AirId).ToArray());
+        writer.WriteUnmanaged(value.data.BitSize);
+        writer.WriteUnmanagedArray(value.data.Array);
     }
     
     [MemoryPackOnDeserialized]
     private static void ReadBlockArray(ref MemoryPackReader reader, ref BlockArray? value)
     {
-        if (value is null)
-            return;
-        value.Palette = (reader.ReadArray<Identifier>() ?? [])
+        Debug.Assert(value is not null, "value is not null");
+        value.palette = (reader.ReadPackableArray<Identifier>() ?? [])
             .Select(Block.FromId)
             .ToList();
+        int bitSize = reader.ReadUnmanaged<int>();
+        ulong[]? array = reader.ReadUnmanagedArray<ulong>();
+        value.data = new VariableBitArray(Chunk.Volume, bitSize, array);
+    }
+
+    public override string ToString()
+    {
+        return $"Dynamic array of {palette.Count} unique blocks";
     }
 }

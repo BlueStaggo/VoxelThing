@@ -39,7 +39,7 @@ public class Game : GameWindow
     public const double TickRate = 1.0 / TicksPerSecond;
     public const int HandshakeRate = TicksPerSecond;
     public const int MaxTimeWithoutHandshake = TicksPerSecond * 5;
-    public const bool EnableCursorGrab = true;
+    public const bool EnableCursorGrab = false;
     public const bool OpenGlDebugging = SharedConstants.Debug; // Only enable this if your drivers support OpenGL 4.3+
     
     public static double TimeElapsed => GLFW.GetTime();

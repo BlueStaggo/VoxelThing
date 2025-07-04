@@ -1,6 +1,6 @@
 using System.Collections;
 
-namespace VoxelThing.Game.Utils;
+namespace VoxelThing.Game.Utils.Collections;
 
 public class ReadOnlySet<T>(ISet<T> baseSet) : IReadOnlySet<T>, ISet<T>
 {

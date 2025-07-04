@@ -4,7 +4,7 @@ namespace VoxelThing.Game.Entities;
 
 public class BouncyEntity(World world) : Entity(world)
 {
-    public const double Drag = 0.95;
+    public const double Drag = 0.99;
     public const double BounceFactor = 0.9;
 
     public override string? Type => "bouncy";

@@ -15,6 +15,8 @@ public readonly struct WorldCache : IBlockAccess
     private readonly Block?[,,] blocks = new Block?[Chunk.Length + Margin2, Chunk.Length + Margin2, Chunk.Length + Margin2];
     private readonly int centerX, centerY, centerZ;
 
+    public readonly bool Empty;
+
     public WorldCache(World world, int centerX, int centerY, int centerZ, Profiler? profiler = null)
     {
         this.world = world;
@@ -32,6 +34,9 @@ public readonly struct WorldCache : IBlockAccess
         }
         
         profiler?.PopPush("load-blocks");
+        
+        Empty = true;
+        
         for (int x = 0; x < Chunk.Length + Margin2; x++)
         {
             int gx = x + (centerX << Chunk.LengthPow2) - Margin;
@@ -41,8 +46,10 @@ public readonly struct WorldCache : IBlockAccess
                 for (int z = 0; z < Chunk.Length + Margin2; z++)
                 {
                     int gz = z + (centerZ << Chunk.LengthPow2) - Margin;
-                    blocks[x, y, z] = GetChunkAtBlock(gx, gy, gz)
+                    Block? block = GetChunkAtBlock(gx, gy, gz)
                         .GetBlock(gx & Chunk.LengthMask, gy & Chunk.LengthMask, gz & Chunk.LengthMask);
+                    Empty &= block is null;
+                    blocks[x, y, z] = block;
                 }
             }
         }

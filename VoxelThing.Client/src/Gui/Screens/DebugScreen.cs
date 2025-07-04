@@ -15,7 +15,7 @@ public class DebugScreen(Game game) : Screen(game)
         
         long totalMb = GC.GetTotalMemory(false) / 1000000L;
 
-        Debug.Assert(Game.World != null, "Game.World != null");
+        Debug.Assert(Game.World is not null, "Game.World is not null");
         string raycastText = Game.SelectionCast.GetDebugText(Game.World);
 
         string[] lines = [

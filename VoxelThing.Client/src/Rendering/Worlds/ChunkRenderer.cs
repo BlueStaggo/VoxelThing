@@ -62,14 +62,16 @@ public class ChunkRenderer : IDisposable
         EmptyTranslucent = true;
 
         Chunk? chunk = world.GetChunkAt(X, Y, Z);
-        if (chunk is null || chunk.Empty)
+        if (chunk is null)
+            return;
+
+        WorldCache worldCache = new(world, X, Y, Z, profiler);
+        if (worldCache.Empty)
             return;
 
         opaqueBindings ??= new(VertexLayout.Block);
         translucentBindings ??= new(VertexLayout.Block);
 
-        WorldCache worldCache = new(world, X, Y, Z, profiler);
-        
         BlockRendererArguments args = new()
         {
             OpaqueBindings = opaqueBindings,
