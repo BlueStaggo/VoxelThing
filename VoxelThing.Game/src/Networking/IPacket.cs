@@ -15,7 +15,7 @@ public interface IPacket
         if (!PacketManager.ForSide(senderSide).TryGetPacketTypeFromId(id, out Type? type))
             return null;
         
-        ushort length = reader.ReadUInt16();
+        int length = reader.Read7BitEncodedInt();
         if (length == 0)
             return null;
         
@@ -38,11 +38,9 @@ public interface IPacket<T> : IPacket
         if (id == 0)
             return;
         byte[] serialized = MemoryPackSerializer.Serialize((T)this);
-        if (serialized.Length > ushort.MaxValue)
-            return;
         
         writer.Write(id);
-        writer.Write((ushort)serialized.Length);
+        writer.Write7BitEncodedInt(serialized.Length);
         writer.Write(MemoryPackSerializer.Serialize((T)this));
     }
 }

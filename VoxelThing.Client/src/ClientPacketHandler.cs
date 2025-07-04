@@ -44,7 +44,6 @@ public sealed class ClientPacketHandler : PacketHandler
 
     void SDisconnect(SDisconnect packet)
     {
-        Client.DisconnectFromServer();
         Client.ExitWorld();
         Client.CurrentScreen = new MultiplayerDisconnectionScreen(Client, packet.Reason);
     }

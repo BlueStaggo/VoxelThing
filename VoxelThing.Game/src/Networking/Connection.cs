@@ -22,6 +22,8 @@ public class Connection : IDisposable
     private readonly BinaryReader networkBinaryReader;
     private readonly BinaryWriter networkBinaryWriter;
 
+    private bool disposed;
+
     public Connection(TcpClient tcpClient, IPEndPoint ipEndPoint, PacketSide side)
     {
         this.tcpClient = tcpClient;
@@ -41,6 +43,8 @@ public class Connection : IDisposable
 
     public void SendPacket(IPacket packet)
     {
+        if (disposed) return;
+        
         try
         {
             if (SharedConstants.PrintPackets)
@@ -51,6 +55,7 @@ public class Connection : IDisposable
         {
             Disconnected?.Invoke(this, EventArgs.Empty);
         }
+        catch (ObjectDisposedException) { }
     }
 
     private void ListenForPackets()
@@ -72,6 +77,7 @@ public class Connection : IDisposable
 
     public void Dispose()
     {
+        disposed = true;
         GC.SuppressFinalize(this);
         cancellationTokenSource.Cancel();
         tcpClient.Dispose();

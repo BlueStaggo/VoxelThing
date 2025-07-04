@@ -41,6 +41,7 @@ public class PauseScreen : Screen
         exitButton.OnClick += (_, _) =>
         {
             game.ExitWorld();
+            game.DisconnectFromServer();
             game.CurrentScreen = Parent;
         };
     }

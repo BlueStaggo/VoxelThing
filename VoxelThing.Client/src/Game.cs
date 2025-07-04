@@ -39,7 +39,7 @@ public class Game : GameWindow
     public const double TickRate = 1.0 / TicksPerSecond;
     public const int HandshakeRate = TicksPerSecond;
     public const int MaxTimeWithoutHandshake = TicksPerSecond * 5;
-    public const bool EnableCursorGrab = false;
+    public const bool EnableCursorGrab = true;
     public const bool OpenGlDebugging = SharedConstants.Debug; // Only enable this if your drivers support OpenGL 4.3+
     
     public static double TimeElapsed => GLFW.GetTime();
@@ -237,24 +237,23 @@ public class Game : GameWindow
             }
             Profiler.Pop();
 
-            if (PacketHandler is not null)
+            if (PacketHandler is null) continue;
+            
+            if (Ticks > PacketHandler.TimeSinceLastHandshake
+                && Ticks - PacketHandler.TimeSinceLastHandshake > MaxTimeWithoutHandshake)
             {
-                if (Ticks > PacketHandler.TimeSinceLastHandshake
-                    && Ticks - PacketHandler.TimeSinceLastHandshake > MaxTimeWithoutHandshake)
-                {
-                    PacketHandler.HandlePacket(new SDisconnect("Timed out"));
-                }
-                else
-                {
-                    if (Ticks % HandshakeRate == 0)
-                        PacketHandler.Server.SendPacket(CHandshake.Instance);
+                PacketHandler.HandlePacket(new SDisconnect("Timed out"));
+            }
+            else
+            {
+                if (Ticks % HandshakeRate == 0)
+                    PacketHandler.Server.SendPacket(CHandshake.Instance);
 
-                    if (Player is not null)
-                        PacketHandler.Server.SendPacket(new CUpdatePosition(Player));
+                if (Player is not null)
+                    PacketHandler.Server.SendPacket(new CUpdatePosition(Player));
 
-                    while (PacketHandler.Server.PendingPackets.TryDequeue(out IPacket? packet))
-                        PacketHandler.HandlePacket(packet);
-                }
+                while (PacketHandler.Server.PendingPackets.TryDequeue(out IPacket? packet))
+                    PacketHandler.HandlePacket(packet);
             }
         }
 
@@ -474,11 +473,9 @@ public class Game : GameWindow
         if (World is null)
             return;
 
-        if (Player is not null)
-        {
+        if (Player is not null && !World.Remote)
             World.SaveHandler.SaveData("player", (CompoundItem)Player.Serialize());
-            Player = null;
-        }
+        Player = null;
 
         World.Close();
         World = null;

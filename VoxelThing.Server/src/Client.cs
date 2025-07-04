@@ -16,19 +16,19 @@ public class Client : IDisposable
 
     public IPEndPoint IpEndPoint => Connection.IpEndPoint;
 
-    private readonly PlayerIsland Island;
+    private readonly PlayerIsland island;
     
     public Client(GameServer server, Connection connection)
     {
         Connection = connection;
         Server = server;
         PacketHandler = new(server, this);
-        Island = new(this);
+        island = new(this);
     }
 
     public void Update()
     {
-        Island.Update();
+        island.Update();
     }
 
     public void SendPacket(IPacket packet) => Connection.SendPacket(packet);
