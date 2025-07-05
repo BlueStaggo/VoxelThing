@@ -28,9 +28,16 @@ jobs:
 #      - name: Test
 #        run: dotnet test --no-build --verbosity normal
       - name: Publish Client
-        run: dotnet publish VoxelThing.Client/VoxelThing.Client.csproj -c Release -o publish --nologo
+        run: dotnet publish VoxelThing.Client/VoxelThing.Client.csproj -c Release -o publish-client --nologo
+      - name: Publish Server
+        run: dotnet publish VoxelThing.Server/VoxelThing.Server.csproj -c Release -o publish-server --nologo
       - name: Upload Client
         uses: actions/upload-artifact@v4
         with:
-          name: dotnet-results-8.0.x
-          path: publish
+          name: client-net8
+          path: publish-client
+      - name: Upload Server
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-net8
+          path: publish-server
