@@ -1,3 +1,9 @@
+# MIGRATED!
+
+Voxel Thing has moved over to Codeberg. Check it out: https://codeberg.org/BlueStaggo/VoxelThing
+
+<hr>
+
 <center>
     <p align="center">
         <img src="img/header.png" alt="Voxel Thing"/>
